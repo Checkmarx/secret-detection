@@ -6,9 +6,26 @@ on:
       - main
 
 jobs:
-  create_tag_and_release:
+  download_2ms:
     runs-on: ubuntu-latest
 
+    steps:
+      - name: delete 2ms binary if exists
+        run: |
+          rm -rf pkg/2ms
+      - name: Download 2ms binary
+        run: |
+          MICRO_ENGINE_VERSION=$(cat 2ms_version.txt)
+          MICRO_ENGINE_URL="https://github.com/Checkmarx/2ms/releases/download/v${MICRO_ENGINE_VERSION}/linux-amd64.zip"
+          wget ${MICRO_ENGINE_URL} -O 2ms.zip && unzip 2ms.zip -d pkg/2ms
+      - name: commit 2ms binary
+        run: |
+          git add bin/*
+          git commit -m "Update 2ms binary"
+          git push
+  create_tag_and_release:
+    runs-on: ubuntu-latest
+    needs: download_2ms
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

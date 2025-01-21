@@ -22,7 +22,7 @@ jobs:
           wget ${MICRO_ENGINE_URL} -O 2ms.zip && unzip 2ms.zip -d pkg/2ms
       - name: commit 2ms binary
         run: |
-          git add bin/*
+          git add pkg/*
           git commit -m "Update 2ms binary"
           git push
   create_tag_and_release:

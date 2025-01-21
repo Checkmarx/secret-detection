@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+      - uses: actions/checkout@v2
       - name: delete 2ms binary if exists
         run: |
           rm -rf pkg/2ms

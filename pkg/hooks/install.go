@@ -2,10 +2,13 @@ package hooks
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/Checkmarx/secret-detection/pkg/config"
+	"gopkg.in/yaml.v2"
 )
 
 // Install sets up pre-commit hooks
@@ -17,10 +20,22 @@ func Install() error {
 		return fmt.Errorf("current directory is not a Git repository")
 	}
 
-	// Write the pre-loaded .pre-commit-config.yaml file to the root of the repository
-	err := config.WritePreloadedConfig(filepath.Join(".", ".pre-commit-config.yaml"))
-	if err != nil {
-		return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
+	// Define the path to the .pre-commit-config.yaml file
+	configFilePath := filepath.Join(".", ".pre-commit-config.yaml")
+
+	// Check if the .pre-commit-config.yaml file exists
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		// File does not exist, create it with the pre-loaded configuration
+		err := config.WritePreloadedConfig(configFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
+		}
+	} else {
+		// File exists, update it with the new configuration
+		err := updateConfigFile(configFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to update .pre-commit-config.yaml: %v", err)
+		}
 	}
 
 	// Run the pre-commit install command
@@ -39,4 +54,37 @@ func isGitRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	err := cmd.Run()
 	return err == nil
+}
+
+// updateConfigFile updates the existing .pre-commit-config.yaml file with the new configuration
+func updateConfigFile(filePath string) error {
+	// Read the existing .pre-commit-config.yaml file
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read .pre-commit-config.yaml: %v", err)
+	}
+
+	// Unmarshal the YAML data into a PreCommitConfig object
+	var preCommitConfig config.PreCommitConfig
+	err = yaml.Unmarshal(data, &preCommitConfig)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal YAML: %v", err)
+	}
+
+	// Add the new configuration to the existing configuration
+	preCommitConfig.Repos = append(preCommitConfig.Repos, config.PreloadedConfig.Repos...)
+
+	// Marshal the updated PreCommitConfig object back to YAML
+	updatedData, err := yaml.Marshal(preCommitConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML: %v", err)
+	}
+
+	// Write the updated YAML data back to the .pre-commit-config.yaml file
+	err = ioutil.WriteFile(filePath, updatedData, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
+	}
+
+	return nil
 }

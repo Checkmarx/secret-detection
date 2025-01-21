@@ -20,6 +20,10 @@ jobs:
           MICRO_ENGINE_VERSION=$(cat 2ms_version.txt)
           MICRO_ENGINE_URL="https://github.com/Checkmarx/2ms/releases/download/v${MICRO_ENGINE_VERSION}/linux-amd64.zip"
           wget ${MICRO_ENGINE_URL} -O 2ms.zip && unzip 2ms.zip -d pkg/2ms
+      - name: Set git identity
+        run: |-
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
       - name: commit 2ms binary
         run: |
           git add pkg/2ms/*

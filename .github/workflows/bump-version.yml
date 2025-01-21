@@ -31,16 +31,3 @@ jobs:
           echo "New tag: $NEW_TAG"
           git tag $NEW_TAG
           git push origin $NEW_TAG
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.create_tag.outputs.NEW_TAG }}
-          release_name: Release ${{ steps.create_tag.outputs.NEW_TAG }}
-          body: |
-            Release notes for ${{ steps.create_tag.outputs.NEW_TAG }}
-          draft: false
-          prerelease: false

@@ -31,7 +31,7 @@ func Install() error {
 			return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
 		}
 	} else {
-		// File exists, update it with the new configuration
+		// File exists, update it with the new configuration if necessary
 		err := updateConfigFile(configFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to update .pre-commit-config.yaml: %v", err)
@@ -69,6 +69,16 @@ func updateConfigFile(filePath string) error {
 	err = yaml.Unmarshal(data, &preCommitConfig)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal YAML: %v", err)
+	}
+
+	// Check if the cx-secret-detection hook is already present
+	for _, repo := range preCommitConfig.Repos {
+		for _, hook := range repo.Hooks {
+			if hook.ID == "cx-secret-detection" {
+				// Hook is already present, do nothing
+				return nil
+			}
+		}
 	}
 
 	// Add the new configuration to the existing configuration

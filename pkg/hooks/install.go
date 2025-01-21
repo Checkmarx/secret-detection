@@ -42,7 +42,7 @@ func isGitRepo() bool {
 
 // copyPreCommitConfig copies the .pre-commit-config.yaml file to the root of the repository
 func copyPreCommitConfig() error {
-	src := "path/to/.pre-commit-config.yaml" // Update this path to the actual location of your config file
+	src := "../config/.pre-commit-config.yaml" // Update this path to the actual location of your config file
 	dst := ".pre-commit-config.yaml"
 
 	srcFile, err := os.Open(src)

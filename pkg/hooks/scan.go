@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"bufio"
 	"fmt"
 	runner "github.com/checkmarx/2ms/pkg"
 	"os"
@@ -43,33 +42,17 @@ func Scan() error {
 		return fmt.Errorf("failed to close temp file: %v", err)
 	}
 
-	// Construct the path to the 2ms binary
-	absPath := filepath.Join(basePath, "../2ms/windows", "2ms.exe")
-
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path for 2ms binary: %v", err)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter additional arguments for 2ms: ")
-	userInput, err := reader.ReadString('\n')
-	if err != nil {
-		return fmt.Errorf("failed to read user input: %v", err)
-	}
-	fmt.Println(userInput)
-
 	fsRunner := runner.NewFileSystemRunner()
-	err = fsRunner.Run("/path/to/scan", "myproject", []string{".git"})
+	err = fsRunner.Run(tmpFile.Name(), "myproject", []string{".git"})
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
 		fmt.Println("Error:", err)
 	}
 
-	cmd = exec.Command(absPath, "filesystem", "--path", tmpFile.Name(), "--stdout-format", "json", "--ignore-on-exit", "all")
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("2ms scan failed: %v\n%s", err, output)
-	}
 	return nil
 }

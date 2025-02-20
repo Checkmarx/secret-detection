@@ -2,57 +2,83 @@ package hooks
 
 import (
 	"fmt"
-	runner "github.com/checkmarx/2ms/pkg"
-	"os"
+	twoms "github.com/checkmarx/2ms/pkg"
 	"os/exec"
-	"path/filepath"
-	"runtime"
+	"regexp"
+	"strings"
 )
+
+var diffHeaderRegex = regexp.MustCompile(`^diff --git a/(.+) b/(.+)$`)
 
 // Scan runs the 2ms binary against the git diff on the pre-commit event
 func Scan() error {
 	fmt.Println("Running 2ms scan on git diff...")
 
-	//Get basepath
-	_, b, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(b)
-
 	// Get the git diff
-	cmd := exec.Command("git", "diff", "--cached")
+	cmd := exec.Command("git", "diff", "--cached", "--unified=0")
 	output, err := cmd.CombinedOutput()
+
 	if err != nil {
 		return fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	}
-	// Write the git diff to a temp file
+
 	diffFiles := string(output)
 	if diffFiles == "" {
 		fmt.Println("No changes to scan.")
 		return nil
 	}
 
-	tmpFile, err := os.CreateTemp(basePath, "git-diff-*.txt")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %v", err)
-	}
+	fileChanges := parseGitDiff(diffFiles)
 
-	if _, err := tmpFile.Write(output); err != nil {
-		return fmt.Errorf("failed to write git diff to temp file: %v", err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("failed to close temp file: %v", err)
-	}
+	scanner := twoms.NewScanner()
 
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path for 2ms binary: %v", err)
-	}
-
-	fsRunner := runner.NewFileSystemRunner()
-	err = fsRunner.Run(tmpFile.Name(), "myproject", []string{".git"})
+	report, err := scanner.Scan(fileChanges)
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
 		fmt.Println("Error:", err)
 	}
 
+	// TODO use report instead of print
+	fmt.Println(report)
+
 	return nil
+}
+
+func parseGitDiff(diff string) []twoms.ScanItem { // TODO update ID? it is "" for now
+	var changes []twoms.ScanItem
+	var currentFile *twoms.ScanItem
+	var builder strings.Builder
+	var isProcessingContent bool
+
+	lines := strings.Split(diff, "\n")
+	for _, line := range lines {
+		if matches := diffHeaderRegex.FindStringSubmatch(line); matches != nil {
+			if currentFile != nil {
+				content := builder.String()
+				currentFile.Content = &content
+				changes = append(changes, *currentFile)
+			}
+			currentFile = &twoms.ScanItem{
+				Source: matches[2],
+			}
+			builder.Reset()
+		} else if currentFile != nil {
+			if !isProcessingContent && !strings.HasPrefix(line, "@@") {
+				continue
+			}
+			isProcessingContent = true
+			if strings.HasPrefix(line, "+") {
+				builder.WriteString(line[1:] + "\n")
+			}
+		}
+	}
+
+	if currentFile != nil {
+		content := builder.String()
+		currentFile.Content = &content
+		changes = append(changes, *currentFile)
+	}
+
+	return changes
 }

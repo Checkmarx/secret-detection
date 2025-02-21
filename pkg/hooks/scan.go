@@ -45,7 +45,7 @@ func Scan() error {
 	return nil
 }
 
-func parseGitDiff(diff string) []twoms.ScanItem { // TODO update ID? it is "" for now
+func parseGitDiff(diff string) []twoms.ScanItem {
 	var changes []twoms.ScanItem
 	var currentFile *twoms.ScanItem
 	var builder strings.Builder
@@ -59,8 +59,10 @@ func parseGitDiff(diff string) []twoms.ScanItem { // TODO update ID? it is "" fo
 				currentFile.Content = &content
 				changes = append(changes, *currentFile)
 			}
+			source := matches[2]
 			currentFile = &twoms.ScanItem{
-				Source: matches[2],
+				ID:     fmt.Sprintf("pre-commit-%s", source),
+				Source: source,
 			}
 			builder.Reset()
 		} else if currentFile != nil {

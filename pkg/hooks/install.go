@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +58,7 @@ func isGitRepo() bool {
 // updateConfigFile updates the existing .pre-commit-config.yaml file with the new configuration
 func updateConfigFile(filePath string) error {
 	// Read the existing .pre-commit-config.yaml file
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read .pre-commit-config.yaml: %v", err)
 	}
@@ -91,7 +90,7 @@ func updateConfigFile(filePath string) error {
 	}
 
 	// Write the updated YAML data back to the .pre-commit-config.yaml file
-	err = ioutil.WriteFile(filePath, updatedData, 0644)
+	err = os.WriteFile(filePath, updatedData, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Checkmarx/secret-detection/pkg/config"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 )
 
 // Uninstall removes the cx-secret-detection hook from the .pre-commit-config.yaml file
@@ -12,7 +12,7 @@ func Uninstall() error {
 	fmt.Println("Uninstalling cx-secret-detection hook...")
 
 	// Read the .pre-commit-config.yaml file
-	data, err := ioutil.ReadFile(".pre-commit-config.yaml")
+	data, err := os.ReadFile(".pre-commit-config.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to read .pre-commit-config.yaml: %v", err)
 	}
@@ -42,7 +42,7 @@ func Uninstall() error {
 	}
 
 	// Write the updated YAML data back to the .pre-commit-config.yaml file
-	err = ioutil.WriteFile(".pre-commit-config.yaml", updatedData, 0644)
+	err = os.WriteFile(".pre-commit-config.yaml", updatedData, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
 	}

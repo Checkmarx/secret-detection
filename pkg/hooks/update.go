@@ -2,7 +2,7 @@ package hooks
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/Checkmarx/secret-detection/pkg/config"
 	"gopkg.in/yaml.v2"
@@ -13,7 +13,7 @@ func Update() error {
 	fmt.Println("Updating cx-secret-detection hook...")
 
 	// Read the .pre-commit-config.yaml file
-	data, err := ioutil.ReadFile(".pre-commit-config.yaml")
+	data, err := os.ReadFile(".pre-commit-config.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to read .pre-commit-config.yaml: %v", err)
 	}
@@ -41,7 +41,7 @@ func Update() error {
 	}
 
 	// Write the updated YAML data back to the .pre-commit-config.yaml file
-	err = ioutil.WriteFile(".pre-commit-config.yaml", updatedData, 0644)
+	err = os.WriteFile(".pre-commit-config.yaml", updatedData, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write .pre-commit-config.yaml: %v", err)
 	}

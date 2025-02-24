@@ -65,6 +65,7 @@ func parseGitDiff(diff string) []twoms.ScanItem {
 				Source: source,
 			}
 			builder.Reset()
+			isProcessingContent = false
 		} else if currentFile != nil {
 			if !isProcessingContent && !strings.HasPrefix(line, "@@") {
 				continue

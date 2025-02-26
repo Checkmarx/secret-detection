@@ -29,10 +29,14 @@ func Scan() error {
 	}
 
 	fileChanges := parseGitDiff(diffFiles)
+	ignoredResultIds, err := readIgnoredResultIds()
+	if err != nil {
+		return err
+	}
 
 	scanner := twoms.NewScanner()
 
-	report, err := scanner.Scan(fileChanges)
+	report, err := scanner.Scan(fileChanges, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {

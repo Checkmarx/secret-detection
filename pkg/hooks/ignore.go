@@ -41,6 +41,7 @@ func Ignore(resultIds []string) error {
 
 	// If there are no new IDs, nothing to do.
 	if len(newIDs) == 0 {
+		fmt.Println("No new resultIds to add")
 		return nil
 	}
 
@@ -58,6 +59,7 @@ func Ignore(resultIds []string) error {
 		}
 	}
 
+	fmt.Printf("Added %d new IDs to %s\n", len(newIDs), ignoreFilePath)
 	return nil
 }
 

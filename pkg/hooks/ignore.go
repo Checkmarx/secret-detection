@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,33 +62,24 @@ func Ignore(resultIds []string) error {
 	return nil
 }
 
-// readIgnoredResultIds reads the ".checkmarx_ignore.txt" file located in the current directory and
+// getIgnoredResultIds reads the ".checkmarx_ignore.txt" file located in the current directory and
 // returns a slice of ignored result IDs. Each line in the file is expected to contain a single result ID.
-func readIgnoredResultIds() ([]string, error) {
+func getIgnoredResultIds() ([]string, error) {
 	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore.txt")
-	if _, err := os.Stat(ignoreFilePath); os.IsNotExist(err) {
-		return []string{}, nil
-	}
-
-	file, err := os.Open(ignoreFilePath)
+	data, err := os.ReadFile(ignoreFilePath)
 	if err != nil {
+		// If the file doesn't exist, return an empty slice without error
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
 		return nil, err
 	}
-	defer file.Close()
 
 	var resultIds []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Trim leading spaces and tab characters
-		sha := strings.TrimSpace(line)
-		if sha != "" {
-			resultIds = append(resultIds, sha)
+	for _, line := range strings.Split(string(data), "\n") {
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			resultIds = append(resultIds, trimmed)
 		}
 	}
-	if err = scanner.Err(); err != nil {
-		return nil, err
-	}
-
 	return resultIds, nil
 }

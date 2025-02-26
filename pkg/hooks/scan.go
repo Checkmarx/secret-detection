@@ -29,7 +29,7 @@ func Scan() error {
 	}
 
 	fileChanges := parseGitDiff(diffFiles)
-	ignoredResultIds, err := readIgnoredResultIds()
+	ignoredResultIds, err := getIgnoredResultIds()
 	if err != nil {
 		return err
 	}

@@ -82,7 +82,7 @@ func readIgnoredResultIds() ([]string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Trim leading spaces and tab characters
-		sha := strings.TrimLeft(line, " \t")
+		sha := strings.TrimSpace(line)
 		if sha != "" {
 			resultIds = append(resultIds, sha)
 		}

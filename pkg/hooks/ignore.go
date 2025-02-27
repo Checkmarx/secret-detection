@@ -62,6 +62,21 @@ func Ignore(resultIds []string) error {
 	return nil
 }
 
+func IgnoreAll() error {
+	report, err := scanAndGenerateReport()
+	if err != nil {
+		return err
+	}
+	if report == nil {
+		return fmt.Errorf("failed to ignore all results: nil report")
+	}
+	var resultIds []string
+	for resultId, _ := range report.Results {
+		resultIds = append(resultIds, resultId)
+	}
+	return Ignore(resultIds)
+}
+
 // getIgnoredResultIds reads the ".checkmarx_ignore.txt" file located in the current directory and
 // returns a slice of ignored result IDs. Each line in the file is expected to contain a single result ID.
 func getIgnoredResultIds() ([]string, error) {

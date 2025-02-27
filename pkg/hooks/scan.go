@@ -16,29 +16,7 @@ var diffHeaderRegex = regexp.MustCompile(`^diff --git a/(.+) b/(.+)$`)
 func Scan() error {
 	fmt.Println("Running 2ms scan on git diff...")
 
-	// Get the git diff
-	cmd := exec.Command("git", "diff", "--cached", "--unified=0")
-	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return fmt.Errorf("failed to get git diff: %v\n%s", err, output)
-	}
-
-	diffFiles := string(output)
-	if diffFiles == "" {
-		fmt.Println("No changes to scan.")
-		return nil
-	}
-
-	fileChanges := parseGitDiff(diffFiles)
-	ignoredResultIds, err := getIgnoredResultIds()
-	if err != nil {
-		return err
-	}
-
-	scanner := twoms.NewScanner()
-
-	report, err := scanner.Scan(fileChanges, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
+	report, err := scanAndGenerateReport()
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
@@ -47,8 +25,27 @@ func Scan() error {
 
 	// TODO use report instead of print
 	printReport(report)
-	return fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	return nil
+}
+
+func scanAndGenerateReport() (*reporting.Report, error) {
+	// Get the git diff
+	cmd := exec.Command("git", "diff", "--cached", "--unified=0")
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git diff: %v\n%s", err, output)
+	}
+
+	diffFiles := string(output)
+	fileChanges := parseGitDiff(diffFiles)
+	ignoredResultIds, err := getIgnoredResultIds()
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := twoms.NewScanner()
+	return scanner.Scan(fileChanges, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
 }
 
 func printReport(report *reporting.Report) {

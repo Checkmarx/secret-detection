@@ -11,14 +11,15 @@ import (
 func Ignore(resultIds []string) error {
 	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore.txt")
 	existingIDs := make(map[string]struct{})
+	var fileContent []byte
 
 	// If the file exists, read its content once into a map
 	if _, err := os.Stat(ignoreFilePath); err == nil {
-		data, err := os.ReadFile(ignoreFilePath)
+		fileContent, err = os.ReadFile(ignoreFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", ignoreFilePath, err)
 		}
-		for _, line := range strings.Split(string(data), "\n") {
+		for _, line := range strings.Split(string(fileContent), "\n") {
 			trimmed := strings.TrimSpace(line)
 			if trimmed != "" {
 				existingIDs[trimmed] = struct{}{}
@@ -50,6 +51,13 @@ func Ignore(resultIds []string) error {
 		return fmt.Errorf("failed to open %s: %w", ignoreFilePath, err)
 	}
 	defer file.Close()
+
+	// If file exists and doesn't end with a newline, add one
+	if len(fileContent) > 0 && fileContent[len(fileContent)-1] != '\n' {
+		if _, err = file.WriteString("\n"); err != nil {
+			return fmt.Errorf("failed to write newline to %s: %w", ignoreFilePath, err)
+		}
+	}
 
 	// Write all new IDs, each on a new line
 	for _, id := range newIDs {

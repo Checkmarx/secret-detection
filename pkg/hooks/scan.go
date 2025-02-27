@@ -2,7 +2,9 @@ package hooks
 
 import (
 	"fmt"
+	"github.com/checkmarx/2ms/lib/reporting"
 	twoms "github.com/checkmarx/2ms/pkg"
+	"github.com/fatih/color"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -44,9 +46,23 @@ func Scan() error {
 	}
 
 	// TODO use report instead of print
-	fmt.Println(report)
+	printReport(report)
 
 	return nil
+}
+
+func printReport(report reporting.Report) {
+	for sha, results := range report.Results {
+		for _, result := range results {
+			color.New(color.FgRed).Printf("Secret type: %s\n", result.RuleDescription)
+			color.New(color.FgYellow).Printf("Secret severity: %.1f\n", result.CvssScore)
+			color.New(color.FgCyan).Printf("Secret SHA: %s\n", sha)
+			color.New(color.FgGreen).Printf("File path: %s\n", result.Source)
+			color.New(color.FgMagenta).Printf("Line the secret was added to: %d\n", result.StartLine)
+			color.New(color.FgWhite).Printf("Code Diff where the secret is added:\n%s\n", result.LineContent)
+			fmt.Println()
+		}
+	}
 }
 
 func parseGitDiff(diff string) []twoms.ScanItem {

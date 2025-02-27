@@ -47,11 +47,11 @@ func Scan() error {
 
 	// TODO use report instead of print
 	printReport(report)
-
+	return fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	return nil
 }
 
-func printReport(report reporting.Report) {
+func printReport(report *reporting.Report) {
 	for sha, results := range report.Results {
 		for _, result := range results {
 			color.New(color.FgRed).Printf("Secret type: %s\n", result.RuleDescription)

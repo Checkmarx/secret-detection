@@ -414,8 +414,15 @@ func TestPreCommitIgnore(t *testing.T) {
 
 func TestPreCommitScan(t *testing.T) {
 	t.Run("add files and commit", func(t *testing.T) {
-		tmpDir, _, cleanup := setupCxBinary(t)
+		tmpDir, destBinary, cleanup := setupCxBinary(t)
 		defer cleanup()
+
+		// add cx to PATH
+		destDir := filepath.Dir(destBinary)
+		oldPath := os.Getenv("PATH")
+		newPath := destDir + string(os.PathListSeparator) + oldPath
+		err := os.Setenv("PATH", newPath)
+		assert.NoError(t, err)
 
 		// Initialize a Git repository
 		cmdGitInit := exec.Command("git", "init")
@@ -424,9 +431,15 @@ func TestPreCommitScan(t *testing.T) {
 			t.Fatalf("failed to initialize git repository: %s: %s", err, string(output))
 		}
 
+		// Install hook
+		cmdPreCommitInstall := exec.Command(destBinary, "pre-commit", "install")
+		cmdPreCommitInstall.Dir = tmpDir
+		_, err = cmdPreCommitInstall.CombinedOutput()
+		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
+
 		// Create file without secrets
 		file1Path := filepath.Join(tmpDir, "no-secrets.txt")
-		err := os.WriteFile(file1Path, []byte("dummy content"), 0644)
+		err = os.WriteFile(file1Path, []byte("dummy content"), 0644)
 		assert.NoError(t, err)
 
 		// Stage the new file

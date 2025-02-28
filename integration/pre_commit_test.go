@@ -14,17 +14,17 @@ import (
 
 func TestPreCommitInstall(t *testing.T) {
 	t.Run("Not a Git repository", func(t *testing.T) {
-		_, destBinary, cleanup := setupCxBinary(t)
+		_, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Run the pre-commit install and expect failure because it's not a git repo.
-		cmdPreCommitInstall := exec.Command(destBinary, "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
 		output, err := cmdPreCommitInstall.CombinedOutput()
 		assert.Error(t, err, "should fail because it is not a git repo")
 		assert.Contains(t, string(output), "current directory is not a Git repository")
 	})
 	t.Run("Git repository with no config file", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize Git repository.
@@ -35,7 +35,7 @@ func TestPreCommitInstall(t *testing.T) {
 		t.Logf("Git init output: %s", string(output))
 
 		// Run the pre-commit install and expect success.
-		cmdPreCommitInstall := exec.Command(destBinary, "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
 		cmdPreCommitInstall.Dir = tmpDir
 		output, err = cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
@@ -64,7 +64,7 @@ func TestPreCommitInstall(t *testing.T) {
 		assert.Contains(t, string(output), "pre-commit installed at .git")
 	})
 	t.Run("Git repository with config file", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize a Git repository
@@ -132,7 +132,7 @@ func TestPreCommitInstall(t *testing.T) {
 			},
 		}
 
-		cmdPreCommitInstall := exec.Command(destBinary, "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
 		cmdPreCommitInstall.Dir = tmpDir
 		output, err := cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
@@ -159,7 +159,7 @@ func TestPreCommitInstall(t *testing.T) {
 
 func TestPreCommitUninstall(t *testing.T) {
 	t.Run("Remove cx-secret-detection hook from config", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize a Git repository
@@ -227,7 +227,7 @@ func TestPreCommitUninstall(t *testing.T) {
 			},
 		}
 
-		cmdPreCommitUninstall := exec.Command(destBinary, "pre-commit", "uninstall")
+		cmdPreCommitUninstall := exec.Command("cx", "pre-commit", "uninstall")
 		cmdPreCommitUninstall.Dir = tmpDir
 		output, err := cmdPreCommitUninstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit uninstall should not fail in a git repo")
@@ -252,7 +252,7 @@ func TestPreCommitUninstall(t *testing.T) {
 
 func TestPreCommitUpdate(t *testing.T) {
 	t.Run("Update cx-secret-detection hook from config", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize a Git repository
@@ -290,7 +290,7 @@ func TestPreCommitUpdate(t *testing.T) {
 
 		expectedConfig := config.PreloadedConfig
 
-		cmdPreCommitUpdate := exec.Command(destBinary, "pre-commit", "update")
+		cmdPreCommitUpdate := exec.Command("cx", "pre-commit", "update")
 		cmdPreCommitUpdate.Dir = tmpDir
 		output, err := cmdPreCommitUpdate.CombinedOutput()
 		assert.NoError(t, err, "pre-commit update should not fail in a git repo")
@@ -316,7 +316,7 @@ func TestPreCommitUpdate(t *testing.T) {
 
 func TestPreCommitIgnore(t *testing.T) {
 	t.Run("Ignore resultIds", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize a Git repository
@@ -327,7 +327,7 @@ func TestPreCommitIgnore(t *testing.T) {
 		}
 
 		mockSha1, mockSha2, mockSha3 := "sha1", "sha2", "sha3"
-		cmdPreCommitIgnore := exec.Command(destBinary, "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s,%s", mockSha1, mockSha2, mockSha3))
+		cmdPreCommitIgnore := exec.Command("cx", "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s,%s", mockSha1, mockSha2, mockSha3))
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err := cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -347,7 +347,7 @@ func TestPreCommitIgnore(t *testing.T) {
 		assert.Equal(t, expectedShas, lines, "ignore file does not contain the expected 3 shas")
 
 		mockSha4, mockSha5 := "sha4", "sha5"
-		cmdPreCommitIgnore = exec.Command(destBinary, "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s", mockSha4, mockSha5))
+		cmdPreCommitIgnore = exec.Command("cx", "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s", mockSha4, mockSha5))
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err = cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -361,7 +361,7 @@ func TestPreCommitIgnore(t *testing.T) {
 		assert.Equal(t, expectedShas, lines, "ignore file does not contain all expected shas")
 	})
 	t.Run("Ignore all results", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
 
 		// Initialize a Git repository
@@ -391,7 +391,7 @@ func TestPreCommitIgnore(t *testing.T) {
 			t.Fatalf("failed to git add files: %s: %s", err, string(output))
 		}
 
-		cmdPreCommitIgnore := exec.Command(destBinary, "pre-commit", "ignore", "--all")
+		cmdPreCommitIgnore := exec.Command("cx", "pre-commit", "ignore", "--all")
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err := cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -414,15 +414,8 @@ func TestPreCommitIgnore(t *testing.T) {
 
 func TestPreCommitScan(t *testing.T) {
 	t.Run("add files and commit", func(t *testing.T) {
-		tmpDir, destBinary, cleanup := setupCxBinary(t)
+		tmpDir, cleanup := setupCxBinary(t)
 		defer cleanup()
-
-		// add cx to PATH
-		destDir := filepath.Dir(destBinary)
-		oldPath := os.Getenv("PATH")
-		newPath := destDir + string(os.PathListSeparator) + oldPath
-		err := os.Setenv("PATH", newPath)
-		assert.NoError(t, err)
 
 		// Initialize a Git repository
 		cmdGitInit := exec.Command("git", "init")
@@ -432,9 +425,9 @@ func TestPreCommitScan(t *testing.T) {
 		}
 
 		// Install hook
-		cmdPreCommitInstall := exec.Command(destBinary, "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
 		cmdPreCommitInstall.Dir = tmpDir
-		_, err = cmdPreCommitInstall.CombinedOutput()
+		_, err := cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
 
 		// Create file without secrets
@@ -476,7 +469,7 @@ func TestPreCommitScan(t *testing.T) {
 	})
 }
 
-func setupCxBinary(t *testing.T) (tmpDir, destBinary string, cleanup func()) {
+func setupCxBinary(t *testing.T) (tmpDir string, cleanup func()) {
 	origWD, err := os.Getwd()
 	assert.NoError(t, err)
 
@@ -485,7 +478,14 @@ func setupCxBinary(t *testing.T) (tmpDir, destBinary string, cleanup func()) {
 
 	// Define the original binary location and the destination path.
 	origBinary := filepath.Join("/app/integration/bin", "cx")
-	destBinary = filepath.Join(tmpDir, "cx")
+	destBinary := filepath.Join(tmpDir, "cx")
+
+	// add cx to PATH
+	destDir := filepath.Dir(destBinary)
+	oldPath := os.Getenv("PATH")
+	newPath := destDir + string(os.PathListSeparator) + oldPath
+	err = os.Setenv("PATH", newPath)
+	assert.NoError(t, err)
 
 	// Read the binary from the original location.
 	input, err := os.ReadFile(origBinary)

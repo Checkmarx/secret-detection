@@ -31,7 +31,7 @@ type Hook struct {
 	MinimumPreCommitVersion string   `yaml:"minimum_pre_commit_version"`
 }
 
-// PreloadedConfig is the pre-loaded configuration
+// PreloadedConfig is the preloaded configuration
 var PreloadedConfig = PreCommitConfig{
 	Repos: []Repo{
 		{

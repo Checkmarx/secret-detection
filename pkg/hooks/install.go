@@ -70,18 +70,30 @@ func updateConfigFile(filePath string) error {
 		return fmt.Errorf("failed to unmarshal YAML: %v", err)
 	}
 
-	// Check if the cx-secret-detection hook is already present
-	for _, repo := range preCommitConfig.Repos {
-		for _, hook := range repo.Hooks {
-			if hook.ID == "cx-secret-detection" {
-				// Hook is already present, do nothing
-				return nil
+	foundLocalRepo := false
+	// Check if the "local" repo exists and modify it directly
+	for i := range preCommitConfig.Repos {
+		if preCommitConfig.Repos[i].Repo == "local" {
+			foundLocalRepo = true
+
+			// Check if the cx-secret-detection hook already exists
+			for _, hook := range preCommitConfig.Repos[i].Hooks {
+				if hook.ID == "cx-secret-detection" {
+					// Hook already exists, nothing to do
+					return nil
+				}
 			}
+
+			// Hook is not present, add it
+			preCommitConfig.Repos[i].Hooks = append(preCommitConfig.Repos[i].Hooks, config.PreloadedConfig.Repos[0].Hooks[0])
+			break
 		}
 	}
 
-	// Add the new configuration to the existing configuration
-	preCommitConfig.Repos = append(preCommitConfig.Repos, config.PreloadedConfig.Repos...)
+	// If no "local" repo exists, add a new one
+	if !foundLocalRepo {
+		preCommitConfig.Repos = append(preCommitConfig.Repos, config.PreloadedConfig.Repos...)
+	}
 
 	// Marshal the updated PreCommitConfig object back to YAML
 	updatedData, err := yaml.Marshal(preCommitConfig)

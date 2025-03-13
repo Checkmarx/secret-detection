@@ -36,7 +36,7 @@ func Scan() error {
 
 func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error) {
 	// Get the git diff
-	cmd := exec.Command("git", "diff", "--cached", "--unified=1")
+	cmd := exec.Command("git", "diff", "--cached")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -66,9 +66,35 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 			color.New(color.FgYellow).Printf("Secret severity: %.1f\n", result.CvssScore)
 			color.New(color.FgCyan).Printf("Secret SHA: %s\n", sha)
 			color.New(color.FgGreen).Printf("File path: %s\n", result.Source)
-			color.New(color.FgMagenta).Printf("Line the secret was added to: %d\n", fileLineContextMap[result.Source][result.StartLine].lineNumber)
-			color.New(color.FgWhite).Printf("Code Diff where the secret is added:\n%s\n", *fileLineContextMap[result.Source][result.StartLine].context)
+
+			// Retrieve the LineContext for the secret (using result.StartLine as index)
+			lineContext := fileLineContextMap[result.Source][result.StartLine]
+			color.New(color.FgMagenta).Printf("Line the secret was added to: %d\n", lineContext.lineNumber)
+			color.New(color.FgWhite).Printf("Code Diff where the secret is added:\n")
+
+			// Print each line of the diff with color based on its first character.
+			printDiffWithColors(*lineContext.context)
 			fmt.Println()
+		}
+	}
+}
+
+func printDiffWithColors(diff string) {
+	lines := strings.Split(diff, "\n")
+	for _, line := range lines {
+		if len(line) == 0 {
+			fmt.Println()
+			continue
+		}
+		switch line[0] {
+		case '-':
+			color.New(color.FgRed).Println(line)
+		case '+':
+			color.New(color.FgGreen).Println(line)
+		case ' ':
+			fallthrough
+		default:
+			color.New(color.FgWhite).Println(line)
 		}
 	}
 }
@@ -82,7 +108,8 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 
 	// Variables for tracking the current hunk state.
 	var isProcessingContent bool
-	var currentLineNumber int
+	var currentLineNumberAddition int
+	var currentLineNumberDeletion int
 	var currentAdditionLineNumbers []int
 	// currentHunkContext accumulates the hunk context (content of additions and context lines)
 	currentHunkContext := ""
@@ -143,11 +170,18 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 			currentHunkContext = ""
 			currentAdditionLineNumbers = nil
 
-			newStart, err := strconv.Atoi(matches[2])
+			newStartDeletion, err := strconv.Atoi(matches[1])
 			if err != nil {
-				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk: %w", err)
+				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
 			}
-			currentLineNumber = newStart
+			newStartAddition, err := strconv.Atoi(matches[2])
+			if err != nil {
+				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
+			}
+
+			currentLineNumberDeletion = newStartDeletion
+			currentLineNumberAddition = newStartAddition
+
 			isProcessingContent = true
 			continue
 		}
@@ -163,13 +197,19 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 			addedContent := line[1:]
 			builder.WriteString(addedContent + "\n")
 			// Record this line number as one with an addition.
-			currentAdditionLineNumbers = append(currentAdditionLineNumbers, currentLineNumber)
+			currentAdditionLineNumbers = append(currentAdditionLineNumbers, currentLineNumberAddition)
 			// Also add this line to the hunk context.
-			currentHunkContext += fmt.Sprintf("%d| %s\n", currentLineNumber, line)
-			currentLineNumber++
-		} else {
-			currentHunkContext += fmt.Sprintf("%d| %s\n", currentLineNumber, line)
-			currentLineNumber++
+			currentHunkContext += fmt.Sprintf("+%12d| %s\n", currentLineNumberAddition, addedContent)
+			currentLineNumberAddition++
+		} else if strings.HasPrefix(line, "-") {
+			removedContent := line[1:]
+			currentHunkContext += fmt.Sprintf("-%12d| %s\n", currentLineNumberDeletion, removedContent)
+			currentLineNumberDeletion++
+		} else if strings.HasPrefix(line, " ") {
+			content := line[1:]
+			currentHunkContext += fmt.Sprintf(" %12d| %s\n", currentLineNumberAddition, content)
+			currentLineNumberAddition++
+			currentLineNumberDeletion++
 		}
 	}
 

@@ -4,7 +4,7 @@ go 1.23.6
 
 require (
 	github.com/checkmarx/2ms v1.4.1-0.20250311164807-05ca5a57d38b
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.18.0
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 )

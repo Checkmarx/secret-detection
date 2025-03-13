@@ -71,7 +71,7 @@ func Ignore(resultIds []string) error {
 }
 
 func IgnoreAll() error {
-	report, err := scanAndGenerateReport()
+	report, _, err := scanAndGenerateReport()
 	if err != nil {
 		return err
 	}

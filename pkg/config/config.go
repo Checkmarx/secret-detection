@@ -45,7 +45,7 @@ var PreloadedConfig = PreCommitConfig{
 					Stages:                  []string{"pre-commit"},
 					Args:                    []string{"hooks", "pre-commit", "secrets-scan"},
 					Language:                "system",
-					PassFilenames:           true,
+					PassFilenames:           false,
 					MinimumPreCommitVersion: "3.2.0",
 				},
 			},

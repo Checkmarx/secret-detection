@@ -203,11 +203,14 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 		}
 	}
 
+	totalFiles := len(secretsPerFile)
+	totalSecrets := report.TotalSecretsFound
+
 	color.New(color.FgWhite).Printf("\nCommit scanned for secrets:\n\n")
 	color.New(color.FgWhite).Printf("Detected ")
-	color.New(color.FgRed).Printf("%d secrets ", report.TotalSecretsFound)
+	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets"))
 	color.New(color.FgWhite).Printf("in ")
-	color.New(color.FgRed).Printf("%d files\n\n", len(secretsPerFile))
+	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
 
 	fileIndex := 1
 	for file, secrets := range secretsPerFile {
@@ -216,11 +219,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 		color.New(color.FgWhite).Printf("#%d File: ", fileIndex)
 		color.New(color.FgHiYellow).Printf("%s\n", file)
 		color.New(color.FgRed).Printf("%d ", numberOfSecrets)
-		if numberOfSecrets == 1 {
-			color.New(color.FgWhite).Printf("Secret detected in file\n\n")
-		} else {
-			color.New(color.FgWhite).Printf("Secrets detected in file\n\n")
-		}
+		color.New(color.FgWhite).Printf("%s detected in file\n\n", pluralize(numberOfSecrets, "Secret", "Secrets"))
 
 		for _, secret := range secrets {
 			secretLineContext := fileLineContextMap[secret.Source][secret.StartLine]
@@ -235,11 +234,9 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 			color.New(color.FgWhite).Printf("\tLocation: ")
 			color.New(color.FgHiYellow).Printf("Line %d\n", secretStartLine)
 
-			// Call printSecretLinesContext passing in the secret, the full list of secrets,
-			// and the occurrence index (i.e. which occurrence to highlight) along with its diff context.
 			printSecretLinesContext(secret, secrets, secretLineContext)
 		}
-		fileIndex += 1
+		fileIndex++
 	}
 
 	// Print section header.
@@ -378,4 +375,12 @@ func getSecretLines(secret *secrets.Secret) int {
 		return len(lines) - 1
 	}
 	return len(lines)
+}
+
+// pluralize returns singular if count equals 1, otherwise returns plural.
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }

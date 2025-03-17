@@ -6,7 +6,6 @@ import (
 	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/fatih/color"
-	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -34,7 +33,7 @@ func Scan() error {
 
 	if report.TotalSecretsFound > 0 {
 		printReport(report, fileLineContextMap)
-		os.Exit(1)
+		return fmt.Errorf("testing:\n")
 	}
 	return nil
 }

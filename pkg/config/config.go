@@ -43,7 +43,7 @@ var PreloadedConfig = PreCommitConfig{
 					Entry:                   "cx",
 					Description:             "Run Cx CLI secret detection",
 					Stages:                  []string{"pre-commit"},
-					Args:                    []string{"pre-commit", "scan"},
+					Args:                    []string{"hooks", "pre-commit", "secrets-scan"},
 					Language:                "system",
 					PassFilenames:           true,
 					MinimumPreCommitVersion: "3.2.0",

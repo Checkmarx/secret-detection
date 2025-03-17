@@ -210,10 +210,16 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 
 	fileIndex := 1
 	for file, secrets := range secretsPerFile {
+		numberOfSecrets := len(secrets)
+
 		color.New(color.FgWhite).Printf("#%d File: ", fileIndex)
 		color.New(color.FgHiYellow).Printf("%s\n", file)
-		color.New(color.FgRed).Printf("%d ", len(secrets))
-		color.New(color.FgWhite).Printf("Secrets detected in file\n\n")
+		color.New(color.FgRed).Printf("%d ", numberOfSecrets)
+		if numberOfSecrets == 1 {
+			color.New(color.FgWhite).Printf("Secret detected in file\n\n")
+		} else {
+			color.New(color.FgWhite).Printf("Secrets detected in file\n\n")
+		}
 
 		repeatedSecretOccurrences := make(map[string]int)
 		for _, secret := range secrets {

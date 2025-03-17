@@ -222,7 +222,6 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 			color.New(color.FgWhite).Printf("Secrets detected in file\n\n")
 		}
 
-		repeatedSecretOccurrences := make(map[string]int)
 		for _, secret := range secrets {
 			secretLineContext := fileLineContextMap[secret.Source][secret.StartLine]
 			secretStartLine := secretLineContext.hunkStartLine + secretLineContext.index
@@ -236,18 +235,9 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 			color.New(color.FgWhite).Printf("\tLocation: ")
 			color.New(color.FgHiYellow).Printf("Line %d\n", secretStartLine)
 
-			// Look up how many times this secret.Value has been seen.
-			repeatedIndex, exists := repeatedSecretOccurrences[secret.Value]
-			if !exists {
-				repeatedIndex = 0
-			}
-
 			// Call printSecretLinesContext passing in the secret, the full list of secrets,
 			// and the occurrence index (i.e. which occurrence to highlight) along with its diff context.
-			printSecretLinesContext(secret, secrets, repeatedIndex, secretLineContext)
-
-			// Update the occurrence count for this secret.
-			repeatedSecretOccurrences[secret.Value] = repeatedIndex + 1
+			printSecretLinesContext(secret, secrets, secretLineContext)
 		}
 		fileIndex += 1
 	}
@@ -281,80 +271,71 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	color.New(color.FgHiBlue).Print("SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
 }
 
-func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, text string) string {
-	white := color.New(color.FgWhite)
+func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, text string) string {
 	red := color.New(color.FgRed)
 
-	// Process each secret in the list.
 	for _, s := range secretsToObfuscate {
 		obf := getObfuscatedSecret(s.Value)
 		if s.Value != secretToHighlight.Value {
-			replacement := white.Sprint(obf)
-			text = strings.ReplaceAll(text, s.Value, replacement)
+			text = strings.ReplaceAll(text, s.Value, obf)
 		} else {
-			// For the secret to highlight, only the occurrence with index repeatedSecretIndex gets red;
-			// the others get white.
-			var result strings.Builder
-			start := 0
-			occurrenceCount := 0
-			for {
-				idx := strings.Index(text[start:], s.Value)
-				if idx == -1 {
-					// Append the remainder of the text.
-					result.WriteString(text[start:])
-					break
-				}
-				idx += start // absolute index
-
-				// Append text before the found occurrence.
-				result.WriteString(text[start:idx])
-				// Decide which color to use for this occurrence.
-				if occurrenceCount == repeatedSecretIndex {
-					// For multi-line secrets, split by newline and wrap each line in red.
-					lines := strings.Split(obf, "\n")
-					for i, l := range lines {
-						// Wrap each non-empty line with the red color.
-						if l != "" {
-							lines[i] = red.Sprint(l)
-						}
+			// For the secret to highlight, wrap every occurrence in red.
+			var replacement string
+			if strings.Contains(obf, "\n") {
+				// For multi-line secrets, split by newline and wrap each line in red.
+				lines := strings.Split(obf, "\n")
+				for i, line := range lines {
+					if line != "" {
+						lines[i] = red.Sprint(line)
 					}
-					result.WriteString(strings.Join(lines, "\n"))
-				} else {
-					result.WriteString(white.Sprint(obf))
 				}
-				occurrenceCount++
-				// Move start index past the occurrence.
-				start = idx + len(s.Value)
+				replacement = strings.Join(lines, "\n")
+			} else {
+				replacement = red.Sprint(obf)
 			}
-			text = result.String()
+			text = strings.ReplaceAll(text, s.Value, replacement)
 		}
 	}
 	return text
 }
 
-// hasRed returns true if the given line contains the ANSI escape sequence for red.
-func hasRed(line string) bool {
-	// The ANSI escape sequence for red is usually "\x1b[31m" or "\033[31m".
-	return strings.Contains(line, "\x1b[31m") || strings.Contains(line, "\033[31m")
+func RemoveANSI(input string) string {
+	// This regex matches ANSI escape sequences.
+	re := regexp.MustCompile("\x1b\\[[0-9;]*m")
+	return re.ReplaceAllString(input, "")
 }
 
-func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, secretLinesContext LineContext) {
+// hasRed returns true if the given line contains the ANSI escape sequence for red.
+func hasRed(line string) bool {
+	// The ANSI escape sequence we are using for red is "\x1b[31m"
+	return strings.Contains(line, "\x1b[31m")
+}
+
+func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, secretLinesContext LineContext) {
 	contextCopy := *secretLinesContext.context
-	text := highlightSecret(secretToHighlight, secretsToObfuscate, repeatedSecretIndex, contextCopy)
+	text := highlightSecret(secretToHighlight, secretsToObfuscate, contextCopy)
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
+		lineContent := line
 		// Compute the actual line number based on the hunk start line.
 		lineNumber := secretLinesContext.hunkStartLine + i
 		var numberStr string
 		if hasRed(line) {
-			numberStr = color.New(color.FgHiYellow).Sprint(lineNumber)
+			// If the current line is not within the highlighted secret block,
+			// remove ANSI escape sequences.
+			if i < secretLinesContext.index || i >= secretLinesContext.index+getSecretLines(secretToHighlight) {
+				lineContent = RemoveANSI(lineContent)
+				numberStr = color.New(color.FgWhite).Sprint(lineNumber)
+			} else {
+				numberStr = color.New(color.FgHiYellow).Sprint(lineNumber)
+			}
 		} else {
 			numberStr = color.New(color.FgWhite).Sprint(lineNumber)
 		}
 		// Reserve 12 spaces for the line number (right aligned).
 		numberStr = fmt.Sprintf("%12s", numberStr)
 		// Print the line number (colored) followed by the line content.
-		fmt.Printf("\t\t%s | %s\n", numberStr, line)
+		fmt.Printf("\t\t%s | %s\n", numberStr, lineContent)
 	}
 
 	color.New(color.FgWhite).Println("")
@@ -384,4 +365,17 @@ func getObfuscatedSecret(secret string) string {
 		}
 	}
 	return builder.String()
+}
+
+func getSecretLines(secret *secrets.Secret) int {
+	if secret == nil || secret.Value == "" {
+		return 0
+	}
+	lines := strings.Split(secret.Value, "\n")
+	// If the secret ends with a newline, the last element is empty;
+	// so we subtract one from the count.
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		return len(lines) - 1
+	}
+	return len(lines)
 }

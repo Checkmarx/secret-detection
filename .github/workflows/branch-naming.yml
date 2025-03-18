@@ -1,0 +1,19 @@
+name: Branch Naming Convention
+
+on:
+  create:
+    branches:
+      - '*'
+
+jobs:
+  branch-naming:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH_NAME=$(echo ${{ github.ref }} | sed 's|refs/heads/||')
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|bugfix|hotfix|release)/[a-z0-9._-]+$ ]]; then
+            echo "Invalid branch name: $BRANCH_NAME"
+            exit 1
+          fi

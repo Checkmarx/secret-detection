@@ -255,6 +255,34 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 		}
 		fileIndex++
 	}
+
+	// Print section header.
+	color.New(color.FgWhite).Printf("\nOptions for proceeding with the commit:\n\n")
+
+	// 1) Remediate
+	color.New(color.FgWhite).Printf("  - Remediate detected secrets using the following workflow (")
+	color.New(color.FgGreen).Printf("recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("      1. Remove detected secrets from files and store them securely. Options:\n")
+	color.New(color.FgWhite).Printf("         - Use environmental variables\n")
+	color.New(color.FgWhite).Printf("         - Use a secret management service\n")
+	color.New(color.FgWhite).Printf("         - Use a configuration management tool\n")
+	color.New(color.FgWhite).Printf("         - Encrypt files containing secrets (least secure method)\n")
+	color.New(color.FgWhite).Printf("      2. Commit fixed code.\n\n")
+
+	// 2) Ignore
+	color.New(color.FgWhite).Printf("  - Ignore detected secrets (")
+	color.New(color.FgYellow).Printf("not recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("  Run command: ")
+	color.New(color.FgHiBlue).Print("cx pre-commit ignore --all\n\n")
+
+	// 3) Bypass
+	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")
+	color.New(color.FgRed).Printf("not recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("  Use command: ")
+	color.New(color.FgHiBlue).Print("SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
 }
 
 func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, text string) string {

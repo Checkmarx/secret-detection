@@ -282,7 +282,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	color.New(color.FgRed).Printf("not recommended")
 	color.New(color.FgWhite).Printf("):\n")
 	color.New(color.FgWhite).Printf("  Use command: ")
-	color.New(color.FgHiBlue).Print("SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
+	color.New(color.FgHiBlue).Print("SKIP=cx-secret-detection git commit -m \"<your message>\"\n")
 }
 
 func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, text string) string {

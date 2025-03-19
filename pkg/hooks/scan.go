@@ -25,7 +25,8 @@ var hunkLineNumber = regexp.MustCompile(`^@@\s*-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)
 
 // Scan runs the 2ms binary against the git diff on the pre-commit event
 func Scan() error {
-	fmt.Println("Running 2ms scan on git diff...")
+	color.NoColor = false
+	color.New(color.FgWhite).Printf("Running 2ms scan on git diff...\n")
 
 	report, fileLineContextMap, err := scanAndGenerateReport()
 	if err != nil {
@@ -33,7 +34,6 @@ func Scan() error {
 	}
 
 	if report.TotalSecretsFound > 0 {
-		color.NoColor = false
 		printReport(report, fileLineContextMap)
 		os.Exit(1)
 	}

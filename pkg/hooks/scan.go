@@ -291,7 +291,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	color.New(color.FgYellow).Printf("not recommended")
 	color.New(color.FgWhite).Printf("):\n")
 	color.New(color.FgWhite).Printf("  Run command: ")
-	color.New(color.FgHiBlue).Print("cx pre-commit ignore --all\n\n")
+	color.New(color.FgHiBlue).Print("cx hooks pre-commit secrets-ignore --all\n\n")
 
 	// 3) Bypass
 	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")

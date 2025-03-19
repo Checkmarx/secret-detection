@@ -20,7 +20,7 @@ type LineContext struct {
 	context       *string
 }
 
-var diffHeaderRegex = regexp.MustCompile(`^diff --git a/(.+) b/(.+)$`)
+var diffHeaderRegex = regexp.MustCompile(`^diff --git\s+"?a/(.+?)"?\s+"?b/(.+?)"?$`)
 var hunkLineNumber = regexp.MustCompile(`^@@\s*-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s*@@`)
 
 // Scan runs the 2ms binary against the git diff on the pre-commit event

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -195,13 +196,23 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 	return changes, fileLineContextMap, nil
 }
 
+// printReport prints the report with files sorted by source (asc)
+// and secrets within each file sorted by their start line.
 func printReport(report *reporting.Report, fileLineContextMap map[string][]LineContext) {
+	// Group secrets per file (source).
 	secretsPerFile := make(map[string][]*secrets.Secret)
 	for _, results := range report.Results {
 		for _, result := range results {
 			secretsPerFile[result.Source] = append(secretsPerFile[result.Source], result)
 		}
 	}
+
+	// Get the list of files and sort them alphabetically (ascending).
+	var fileKeys []string
+	for file := range secretsPerFile {
+		fileKeys = append(fileKeys, file)
+	}
+	sort.Strings(fileKeys)
 
 	totalFiles := len(secretsPerFile)
 	totalSecrets := report.TotalSecretsFound
@@ -213,16 +224,23 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
 
 	fileIndex := 1
-	for file, secrets := range secretsPerFile {
-		numberOfSecrets := len(secrets)
+	// Iterate over sorted file keys.
+	for _, file := range fileKeys {
+		secretsInFile := secretsPerFile[file]
+		// Sort the secrets by their start line.
+		sort.Slice(secretsInFile, func(i, j int) bool {
+			return secretsInFile[i].StartLine < secretsInFile[j].StartLine
+		})
+		numberOfSecrets := len(secretsInFile)
 
 		color.New(color.FgWhite).Printf("#%d File: ", fileIndex)
 		color.New(color.FgHiYellow).Printf("%s\n", file)
-		color.New(color.FgRed).Printf("%d ", len(secrets))
+		color.New(color.FgRed).Printf("%d ", numberOfSecrets)
 		color.New(color.FgWhite).Printf("%s detected in file\n\n", pluralize(numberOfSecrets, "Secret", "Secrets"))
 
 		repeatedSecretOccurrences := make(map[string]int)
-		for _, secret := range secrets {
+		for _, secret := range secretsInFile {
+			// Calculate the secret start line using the file line context.
 			secretLineContext := fileLineContextMap[secret.Source][secret.StartLine]
 			secretStartLine := secretLineContext.hunkStartLine + secretLineContext.index
 
@@ -237,18 +255,16 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 
 			key := fmt.Sprintf("%s:%d", secret.Value, secretStartLine)
 
-			// Handle cases where the same secret appears multiple times on the same line
+			// Handle cases where the same secret appears multiple times on the same line.
 			repeatedIndexPerLine, exists := repeatedSecretOccurrences[key]
 			if !exists {
 				repeatedIndexPerLine = 0
 			}
 			contextBeforeSecretStartLine := getNLines(*secretLineContext.context, secretLineContext.index)
 			repeatedSecretsBeforeLine := strings.Count(contextBeforeSecretStartLine, secret.Value)
-			secretRepeatedIndex := repeatedIndexPerLine + repeatedSecretsBeforeLine
+			secretHighlightIndex := repeatedIndexPerLine + repeatedSecretsBeforeLine
 
-			// Call printSecretLinesContext passing in the secret, the full list of secrets,
-			// and the occurrence index (i.e. which occurrence to highlight) along with its diff context.
-			printSecretLinesContext(secret, secrets, secretRepeatedIndex, secretLineContext)
+			printSecretLinesContext(secret, secretsInFile, secretHighlightIndex, secretLineContext)
 
 			// Update the occurrence count for this secret (value and line combination).
 			repeatedSecretOccurrences[key] = repeatedIndexPerLine + 1

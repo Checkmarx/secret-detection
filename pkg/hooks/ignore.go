@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// Ignore adds the provided resultIds to the ignore list stored in the ".checkmarx_ignore.txt" file
+// Ignore adds the provided resultIds to the ignore list stored in the ".checkmarx_ignore" file
 func Ignore(resultIds []string) error {
-	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore.txt")
+	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore")
 	existingIDs := make(map[string]struct{})
 	var fileContent []byte
 
@@ -85,10 +85,10 @@ func IgnoreAll() error {
 	return Ignore(resultIds)
 }
 
-// getIgnoredResultIds reads the ".checkmarx_ignore.txt" file located in the current directory and
+// getIgnoredResultIds reads the ".checkmarx_ignore" file located in the current directory and
 // returns a slice of ignored result IDs. Each line in the file is expected to contain a single result ID.
 func getIgnoredResultIds() ([]string, error) {
-	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore.txt")
+	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore")
 	data, err := os.ReadFile(ignoreFilePath)
 	if err != nil {
 		// If the file doesn't exist, return an empty slice without error

@@ -3,6 +3,7 @@ package hooks
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -89,7 +90,8 @@ func IgnoreAll() error {
 // returns a slice of ignored result IDs. Each line in the file is expected to contain a single result ID.
 func getIgnoredResultIds() ([]string, error) {
 	ignoreFilePath := filepath.Join(".", ".checkmarx_ignore.txt")
-	data, err := os.ReadFile(ignoreFilePath)
+
+	_, err := os.Stat(ignoreFilePath)
 	if err != nil {
 		// If the file doesn't exist, return an empty slice without error
 		if os.IsNotExist(err) {
@@ -98,11 +100,31 @@ func getIgnoredResultIds() ([]string, error) {
 		return nil, err
 	}
 
+	// Verify that the file is staged
+	lsCmd := exec.Command("git", "ls-files", "--error-unmatch", ignoreFilePath)
+	if err := lsCmd.Run(); err != nil {
+		return nil, fmt.Errorf("ignore file %s is not staged\n`git add .checkmarx_ignore.txt` to fix this.", ignoreFilePath)
+	}
+
+	// Check if there are unstaged changes in the file.
+	// Using `--quiet` implies exit codes: 1 if there are differences and 0 if none.
+	diffCmd := exec.Command("git", "diff", "--quiet", ignoreFilePath)
+	if err := diffCmd.Run(); err != nil {
+		return nil, fmt.Errorf("ignore file %s has unstaged changes\n`git add .checkmarx_ignore.txt` to fix this.", ignoreFilePath)
+	}
+
+	data, err := os.ReadFile(ignoreFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process each line into a slice of IDs.
 	var resultIds []string
 	for _, line := range strings.Split(string(data), "\n") {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			resultIds = append(resultIds, trimmed)
 		}
 	}
+
 	return resultIds, nil
 }

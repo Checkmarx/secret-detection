@@ -16,7 +16,7 @@ import (
 )
 
 type LineContext struct {
-	hunkStartLine int
+	hunkStartLine *int
 	index         int
 	context       *string
 }
@@ -75,7 +75,7 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 	// Variables for tracking the current hunk.
 	var isProcessingContent bool
 	// currentHunkStartLine is set when a hunk header is processed.
-	var currentHunkStartLine int
+	var currentHunkStartLine *int
 	// currentHunkIndex is the index within the current hunk (resets on each new hunk).
 	var currentHunkIndex int
 	// currentAddedIndices holds the relative indices (within the hunk) for added lines.
@@ -147,7 +147,9 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 			if err != nil {
 				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
 			}
-			currentHunkStartLine = newStartAddition
+			temp := new(int)
+			*temp = newStartAddition
+			currentHunkStartLine = temp
 			isProcessingContent = true
 			continue
 		}
@@ -241,7 +243,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 		for _, secret := range secretsInFile {
 			// Calculate the secret start line using the file line context.
 			secretLineContext := fileLineContextMap[secret.Source][secret.StartLine]
-			secretStartLine := secretLineContext.hunkStartLine + secretLineContext.index
+			secretStartLine := *secretLineContext.hunkStartLine + secretLineContext.index
 
 			color.New(color.FgWhite).Printf("\tSecret detected: ")
 			color.New(color.FgHiYellow).Printf("%s\n", secret.RuleID)
@@ -361,7 +363,7 @@ func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfusca
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
 		// Compute the actual line number based on the hunk start line.
-		lineNumber := secretLinesContext.hunkStartLine + i
+		lineNumber := *secretLinesContext.hunkStartLine + i
 		var numberStr string
 		if hasRed(line) {
 			numberStr = color.New(color.FgHiYellow).Sprint(lineNumber)

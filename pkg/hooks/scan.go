@@ -216,7 +216,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	totalFiles := len(secretsPerFile)
 	totalSecrets := report.TotalSecretsFound
 
-	color.New(color.FgWhite).Printf("\nCommit scanned for secrets:\n\n")
+	color.New(color.FgWhite).Printf("Commit scanned for secrets:\n\n")
 	color.New(color.FgWhite).Printf("Detected ")
 	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets"))
 	color.New(color.FgWhite).Printf("in ")

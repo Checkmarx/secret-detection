@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
@@ -12,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -23,6 +25,13 @@ type LineContext struct {
 
 var diffHeaderRegex = regexp.MustCompile(`^diff --git\s+"?a/(.+?)"?\s+"?b/(.+?)"?$`)
 var hunkLineNumber = regexp.MustCompile(`^@@\s*-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s*@@`)
+
+// builderPool lets us reuse strings.Builders to reduce allocations.
+var builderPool = sync.Pool{
+	New: func() interface{} {
+		return new(strings.Builder)
+	},
+}
 
 // Scan runs the 2ms binary against the git diff on the pre-commit event
 func Scan() error {
@@ -41,57 +50,69 @@ func Scan() error {
 }
 
 func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error) {
-	// Get the git diff
+	// Get the git diff.
 	cmd := exec.Command("git", "diff", "--cached")
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	}
-
 	diffFiles := string(output)
-	fileChanges, fileLineContextMap, err := parseGitDiff(diffFiles)
-	if err != nil {
-		return nil, nil, err
-	}
 
+	// Create a channel for dynamically receiving ScanItems.
+	itemsCh := make(chan twoms.ScanItem)
+	var fileLineContextMap map[string][]LineContext
+	var parseErr error
+
+	// Launch the diff parser as a goroutine.
+	go func() {
+		// parseGitDiff will send each ScanItem on itemsCh and close it when done.
+		fileLineContextMap, parseErr = parseGitDiff(diffFiles, itemsCh)
+	}()
+
+	// Get any ignored result IDs.
 	ignoredResultIds, err := getIgnoredResultIds()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Create a scanner and process items dynamically.
 	scanner := twoms.NewScanner()
-	report, err := scanner.Scan(fileChanges, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
+	report, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
+	// If the parser encountered an error, return it.
+	if parseErr != nil {
+		return nil, nil, parseErr
+	}
+
 	return report, fileLineContextMap, err
 }
 
-func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, error) {
-	var changes []twoms.ScanItem
+func parseGitDiff(diff string, out chan<- twoms.ScanItem) (map[string][]LineContext, error) {
 	var currentFile *twoms.ScanItem
-	var builder strings.Builder
-	// Mapping: file name -> slice of LineContext entries.
+
+	// Obtain builders from the pool.
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
+
 	fileLineContextMap := make(map[string][]LineContext)
 
-	// Variables for tracking the current hunk.
 	var isProcessingContent bool
-	// currentHunkStartLine is set when a hunk header is processed.
 	var currentHunkStartLine *int
-	// currentHunkIndex is the index within the current hunk (resets on each new hunk).
 	var currentHunkIndex int
-	// currentAddedIndices holds the relative indices (within the hunk) for added lines.
 	var currentAddedIndices []int
-	// currentHunkContext accumulates the hunk's context (all addition and context lines).
-	currentHunkContext := ""
 
-	lines := strings.Split(diff, "\n")
-	for _, line := range lines {
+	hunkContextBuilder := builderPool.Get().(*strings.Builder)
+	hunkContextBuilder.Reset()
+
+	scanner := bufio.NewScanner(strings.NewReader(diff))
+	for scanner.Scan() {
+		line := scanner.Text()
+
 		// Check for a diff file header.
 		if matches := diffHeaderRegex.FindStringSubmatch(line); matches != nil {
-			// Flush the previous file if any.
+			// Flush previous file if any.
 			if currentFile != nil {
-				// Flush any pending hunk context for the last hunk.
-				if currentHunkContext != "" && len(currentAddedIndices) > 0 {
-					contextCopy := currentHunkContext
+				if hunkContextBuilder.Len() > 0 && len(currentAddedIndices) > 0 {
+					contextCopy := hunkContextBuilder.String()
 					for _, idx := range currentAddedIndices {
 						fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
 							hunkStartLine: currentHunkStartLine,
@@ -102,7 +123,8 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 				}
 				content := builder.String()
 				currentFile.Content = &content
-				changes = append(changes, *currentFile)
+				// Send completed ScanItem.
+				out <- *currentFile
 			}
 			// Start a new file.
 			source := matches[2]
@@ -111,24 +133,21 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 				Source: source,
 			}
 			builder.Reset()
-			// Reset hunk-related variables.
-			isProcessingContent = false
-			currentHunkContext = ""
+			hunkContextBuilder.Reset()
 			currentAddedIndices = nil
+			isProcessingContent = false
 			continue
 		}
 
-		// Process only if a file is active.
+		// If no file is active, skip.
 		if currentFile == nil {
 			continue
 		}
 
-		// Check if this line is a hunk header.
+		// Check for a hunk header.
 		if matches := hunkLineNumber.FindStringSubmatch(line); matches != nil {
-			// Before starting a new hunk, flush the accumulated hunk context
-			// for all addition lines recorded so far.
-			if currentHunkContext != "" && len(currentAddedIndices) > 0 {
-				contextCopy := currentHunkContext
+			if hunkContextBuilder.Len() > 0 && len(currentAddedIndices) > 0 {
+				contextCopy := hunkContextBuilder.String()
 				for _, idx := range currentAddedIndices {
 					fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
 						hunkStartLine: currentHunkStartLine,
@@ -137,15 +156,13 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 					})
 				}
 			}
-			// Reset hunk-specific accumulators.
-			currentHunkContext = ""
+			hunkContextBuilder.Reset()
 			currentAddedIndices = nil
 			currentHunkIndex = 0
 
-			// Parse the new hunk's starting line from the hunk header.
 			newStartAddition, err := strconv.Atoi(matches[2])
 			if err != nil {
-				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
+				return nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
 			}
 			temp := new(int)
 			*temp = newStartAddition
@@ -154,33 +171,32 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 			continue
 		}
 
-		// Skip processing if we haven't started a hunk.
+		// Process hunk lines.
 		if !isProcessingContent {
 			continue
 		}
-
-		// Process lines within the hunk.
 		if strings.HasPrefix(line, "+") {
-			// Addition line: record its content without the '+' marker.
 			addedContent := line[1:]
 			builder.WriteString(addedContent + "\n")
-			// Record the current hunk index for this addition.
 			currentAddedIndices = append(currentAddedIndices, currentHunkIndex)
-			// Append the line to the current hunk context.
-			currentHunkContext += fmt.Sprintf("%s\n", addedContent)
+			hunkContextBuilder.WriteString(addedContent + "\n")
 			currentHunkIndex++
 		} else if strings.HasPrefix(line, " ") {
-			// Context line: record its content (without the leading space).
 			content := line[1:]
-			currentHunkContext += fmt.Sprintf("%s\n", content)
+			hunkContextBuilder.WriteString(content + "\n")
 			currentHunkIndex++
 		}
 	}
 
-	// Flush any remaining hunk context after processing all lines.
+	// Check for scanning error.
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	// Flush remaining hunk context for the last file.
 	if currentFile != nil {
-		if currentHunkContext != "" && len(currentAddedIndices) > 0 {
-			contextCopy := currentHunkContext
+		if hunkContextBuilder.Len() > 0 && len(currentAddedIndices) > 0 {
+			contextCopy := hunkContextBuilder.String()
 			for _, idx := range currentAddedIndices {
 				fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
 					hunkStartLine: currentHunkStartLine,
@@ -191,10 +207,16 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 		}
 		content := builder.String()
 		currentFile.Content = &content
-		changes = append(changes, *currentFile)
+		out <- *currentFile
 	}
 
-	return changes, fileLineContextMap, nil
+	// Return builders to the pool.
+	builderPool.Put(builder)
+	builderPool.Put(hunkContextBuilder)
+
+	// Close the output channel to signal completion.
+	close(out)
+	return fileLineContextMap, nil
 }
 
 // printReport prints the report with files sorted by source (asc)

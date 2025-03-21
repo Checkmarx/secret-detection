@@ -18,7 +18,7 @@ func TestPreCommitInstall(t *testing.T) {
 		defer cleanup()
 
 		// Run the pre-commit install and expect failure because it's not a git repo.
-		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
 		output, err := cmdPreCommitInstall.CombinedOutput()
 		assert.Error(t, err, "should fail because it is not a git repo")
 		assert.Contains(t, string(output), "current directory is not a Git repository")
@@ -35,7 +35,7 @@ func TestPreCommitInstall(t *testing.T) {
 		t.Logf("Git init output: %s", string(output))
 
 		// Run the pre-commit install and expect success.
-		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
 		cmdPreCommitInstall.Dir = tmpDir
 		output, err = cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
@@ -122,9 +122,9 @@ func TestPreCommitInstall(t *testing.T) {
 							Entry:                   "cx",
 							Description:             "Run Cx CLI secret detection",
 							Stages:                  []string{"pre-commit"},
-							Args:                    []string{"pre-commit", "scan"},
+							Args:                    []string{"hooks", "pre-commit", "secrets-scan"},
 							Language:                "system",
-							PassFilenames:           true,
+							PassFilenames:           false,
 							MinimumPreCommitVersion: "3.2.0",
 						},
 					},
@@ -132,7 +132,7 @@ func TestPreCommitInstall(t *testing.T) {
 			},
 		}
 
-		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
+		cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
 		cmdPreCommitInstall.Dir = tmpDir
 		output, err := cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
@@ -227,7 +227,7 @@ func TestPreCommitUninstall(t *testing.T) {
 			},
 		}
 
-		cmdPreCommitUninstall := exec.Command("cx", "pre-commit", "uninstall")
+		cmdPreCommitUninstall := exec.Command("cx", "hooks", "pre-commit", "secrets-uninstall-git-hook")
 		cmdPreCommitUninstall.Dir = tmpDir
 		output, err := cmdPreCommitUninstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit uninstall should not fail in a git repo")
@@ -290,7 +290,7 @@ func TestPreCommitUpdate(t *testing.T) {
 
 		expectedConfig := config.PreloadedConfig
 
-		cmdPreCommitUpdate := exec.Command("cx", "pre-commit", "update")
+		cmdPreCommitUpdate := exec.Command("cx", "hooks", "pre-commit", "secrets-update-git-hook")
 		cmdPreCommitUpdate.Dir = tmpDir
 		output, err := cmdPreCommitUpdate.CombinedOutput()
 		assert.NoError(t, err, "pre-commit update should not fail in a git repo")
@@ -327,7 +327,7 @@ func TestPreCommitIgnore(t *testing.T) {
 		}
 
 		mockSha1, mockSha2, mockSha3 := "sha1", "sha2", "sha3"
-		cmdPreCommitIgnore := exec.Command("cx", "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s,%s", mockSha1, mockSha2, mockSha3))
+		cmdPreCommitIgnore := exec.Command("cx", "hooks", "pre-commit", "secrets-ignore", "--resultIds", fmt.Sprintf("%s,%s,%s", mockSha1, mockSha2, mockSha3))
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err := cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -347,7 +347,7 @@ func TestPreCommitIgnore(t *testing.T) {
 		assert.Equal(t, expectedShas, lines, "ignore file does not contain the expected 3 shas")
 
 		mockSha4, mockSha5 := "sha4", "sha5"
-		cmdPreCommitIgnore = exec.Command("cx", "pre-commit", "ignore", "--resultIds", fmt.Sprintf("%s,%s", mockSha4, mockSha5))
+		cmdPreCommitIgnore = exec.Command("cx", "hooks", "pre-commit", "secrets-ignore", "--resultIds", fmt.Sprintf("%s,%s", mockSha4, mockSha5))
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err = cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -391,7 +391,7 @@ func TestPreCommitIgnore(t *testing.T) {
 			t.Fatalf("failed to git add files: %s: %s", err, string(output))
 		}
 
-		cmdPreCommitIgnore := exec.Command("cx", "pre-commit", "ignore", "--all")
+		cmdPreCommitIgnore := exec.Command("cx", "hooks", "pre-commit", "secrets-ignore", "--all")
 		cmdPreCommitIgnore.Dir = tmpDir
 		output, err := cmdPreCommitIgnore.CombinedOutput()
 		assert.NoError(t, err)
@@ -413,59 +413,72 @@ func TestPreCommitIgnore(t *testing.T) {
 }
 
 func TestPreCommitScan(t *testing.T) {
-	t.Run("add files and commit", func(t *testing.T) {
-		tmpDir, cleanup := setupCxBinary(t)
-		defer cleanup()
+	tmpDir, cleanup := setupCxBinary(t)
+	defer cleanup()
 
-		// Initialize a Git repository
-		cmdGitInit := exec.Command("git", "init")
-		cmdGitInit.Dir = tmpDir
-		if output, err := cmdGitInit.CombinedOutput(); err != nil {
-			t.Fatalf("failed to initialize git repository: %s: %s", err, string(output))
-		}
+	// Initialize a Git repository
+	cmdGitInit := exec.Command("git", "init")
+	cmdGitInit.Dir = tmpDir
+	if output, err := cmdGitInit.CombinedOutput(); err != nil {
+		t.Fatalf("failed to initialize git repository: %s: %s", err, string(output))
+	}
 
-		// Install hook
-		cmdPreCommitInstall := exec.Command("cx", "pre-commit", "install")
-		cmdPreCommitInstall.Dir = tmpDir
-		_, err := cmdPreCommitInstall.CombinedOutput()
-		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
+	// set dummy user.email
+	cmdGitConfigEmail := exec.Command("git", "config", "user.email", "dummy@example.com")
+	cmdGitConfigEmail.Dir = tmpDir
+	if output, err := cmdGitConfigEmail.CombinedOutput(); err != nil {
+		t.Fatalf("should not fail to config git dummy email: %s: %s", err, string(output))
+	}
 
-		// Create file without secrets
+	// set dummy user.name
+	cmdGitConfigName := exec.Command("git", "config", "user.name", "dummy Name")
+	cmdGitConfigName.Dir = tmpDir
+	if output, err := cmdGitConfigName.CombinedOutput(); err != nil {
+		t.Fatalf("should not fail to config git dummy name: %s: %s", err, string(output))
+	}
+
+	// Install hook
+	cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
+	cmdPreCommitInstall.Dir = tmpDir
+	_, err := cmdPreCommitInstall.CombinedOutput()
+	assert.NoError(t, err, "pre-commit install should not fail in a git repo")
+
+	// stage config file
+	cmdGitAdd := exec.Command("git", "add", ".pre-commit-config.yaml")
+	cmdGitAdd.Dir = tmpDir
+	if output, err := cmdGitAdd.CombinedOutput(); err != nil {
+		t.Fatalf("failed to stage config file: %s: %s", err, string(output))
+	}
+
+	t.Run("add files without secrets and commit", func(t *testing.T) {
+		// Create files without secrets
 		file1Path := filepath.Join(tmpDir, "no-secrets.txt")
 		err = os.WriteFile(file1Path, []byte("dummy content"), 0644)
 		assert.NoError(t, err)
 
+		file2Path := filepath.Join(tmpDir, "no-secrets2.txt")
+		err = os.WriteFile(file2Path, []byte("dummy content 2"), 0644)
+		assert.NoError(t, err)
+
 		// Stage the new file
-		cmdGitAdd := exec.Command("git", "add", "no-secrets.txt")
+		cmdGitAdd = exec.Command("git", "add", "no-secrets.txt")
 		cmdGitAdd.Dir = tmpDir
 		if output, err := cmdGitAdd.CombinedOutput(); err != nil {
-			t.Fatalf("failed to git add files: %s: %s", err, string(output))
-		}
-
-		// set dummy user.email
-		cmdGitConfigEmail := exec.Command("git", "config", "user.email", "dummy@example.com")
-		cmdGitConfigEmail.Dir = tmpDir
-		if output, err := cmdGitConfigEmail.CombinedOutput(); err != nil {
-			t.Fatalf("should not fail to config git dummy email: %s: %s", err, string(output))
-		}
-
-		// set dummy user.name
-		cmdGitConfigName := exec.Command("git", "config", "user.name", "dummy Name")
-		cmdGitConfigName.Dir = tmpDir
-		if output, err := cmdGitConfigName.CombinedOutput(); err != nil {
-			t.Fatalf("should not fail to config git dummy name: %s: %s", err, string(output))
+			t.Fatalf("failed to stage no-secrets file: %s: %s", err, string(output))
 		}
 
 		// commit changes, should not fail because no secrets were added
 		cmdGitCommit := exec.Command("git", "commit", "-m", "no secrets")
 		cmdGitCommit.Dir = tmpDir
-		if output, err := cmdGitCommit.CombinedOutput(); err != nil {
+		output, err := cmdGitCommit.CombinedOutput()
+		if err != nil {
 			t.Fatalf("should not fail to commit when no secrets are added: %s: %s", err, string(output))
 		}
 
-		// TODO add secrets to a file and commit, should fail
-		// TODO compare expected with actual report
-		// TODO ignore all results and commit again, should pass
+		assert.Contains(t, string(output), "Cx Secret Detection......................................................Passed")
+	})
+	t.Run("add files with secrets and commit then ignore all and commit again", func(t *testing.T) {
+		// TOD
 	})
 }
 

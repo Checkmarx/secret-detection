@@ -8,14 +8,16 @@ import (
 
 func TestParseGitDiff(t *testing.T) {
 	tests := []struct {
-		name     string
-		diff     string
-		expected []twoms.ScanItem
+		name              string
+		diff              string
+		expectedScanItems []twoms.ScanItem
+		expectedContext   map[string][]LineContext
 	}{
 		{
-			name:     "Empty diff",
-			diff:     "",
-			expected: nil,
+			name:              "Empty diff",
+			diff:              "",
+			expectedScanItems: nil,
+			expectedContext:   map[string][]LineContext{},
 		},
 		{
 			name: "rename file without changes",
@@ -23,26 +25,28 @@ func TestParseGitDiff(t *testing.T) {
 similarity index 100%
 rename from oldname.txt
 rename to newname.txt`,
-			expected: []twoms.ScanItem{
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-newname.txt",
 					Source:  "newname.txt",
 					Content: strPtr(""),
 				},
 			},
+			expectedContext: map[string][]LineContext{},
 		},
 		{
 			name: "new file without content",
 			diff: `diff --git a/newfile.txt b/newfile.txt
 new file mode 100644
 index 0000000..abc1234`,
-			expected: []twoms.ScanItem{
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-newfile.txt",
 					Source:  "newfile.txt",
 					Content: strPtr(""),
 				},
 			},
+			expectedContext: map[string][]LineContext{},
 		},
 		{
 			name: "new file with content",
@@ -54,11 +58,25 @@ index 0000000..abc1234
 @@ -0,0 +1,2 @@
 +line1
 +line2`,
-			expected: []twoms.ScanItem{
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-newfile.txt",
 					Source:  "newfile.txt",
 					Content: strPtr("line1\nline2\n"),
+				},
+			},
+			expectedContext: map[string][]LineContext{
+				"newfile.txt": {
+					{
+						hunkStartLine: 1,
+						index:         0,
+						context:       strPtr("line1\nline2\n"),
+					},
+					{
+						hunkStartLine: 1,
+						index:         1,
+						context:       strPtr("line1\nline2\n"),
+					},
 				},
 			},
 		},
@@ -72,13 +90,14 @@ index abc1234..0000000
 @@ -1,2 +0,0 @@
 -line1
 -line2`,
-			expected: []twoms.ScanItem{
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-file.txt",
 					Source:  "file.txt",
 					Content: strPtr(""),
 				},
 			},
+			expectedContext: map[string][]LineContext{},
 		},
 		{
 			name: "rename file with changes",
@@ -92,11 +111,20 @@ index abc1234..0000000 111111
 @@ -1,3 +1,3 @@
 -lineB
 +lineB-modified`,
-			expected: []twoms.ScanItem{
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-newname.txt",
 					Source:  "newname.txt",
 					Content: strPtr("lineB-modified\n"),
+				},
+			},
+			expectedContext: map[string][]LineContext{
+				"newname.txt": {
+					{
+						hunkStartLine: 1,
+						index:         0,
+						context:       strPtr("lineB-modified\n"),
+					},
 				},
 			},
 		},
@@ -106,89 +134,164 @@ index abc1234..0000000 111111
 index abc1234..0000000 111111
 --- a/file1.txt
 +++ b/file1.txt
-@@ -0,0 +1,2 @@
+@@ -0,0 +8,2 @@
+ context1
 +line1
-+line2`,
-			expected: []twoms.ScanItem{
++line2
+ context2
+@@ -0,0 +16,2 @@
+ context3
++line3
++line4
+ context4
+`,
+			expectedScanItems: []twoms.ScanItem{
 				{
 					ID:      "pre-commit-file1.txt",
 					Source:  "file1.txt",
+					Content: strPtr("line1\nline2\nline3\nline4\n"),
+				},
+			},
+			expectedContext: map[string][]LineContext{
+				"file1.txt": {
+					{
+						hunkStartLine: 8,
+						index:         1,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
+					{
+						hunkStartLine: 8,
+						index:         2,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
+					{
+						hunkStartLine: 16,
+						index:         1,
+						context:       strPtr("context3\nline3\nline4\ncontext4\n"),
+					},
+					{
+						hunkStartLine: 16,
+						index:         2,
+						context:       strPtr("context3\nline3\nline4\ncontext4\n"),
+					},
+				},
+			},
+		},
+		{
+			name: "a file with an emoji in its name",
+			diff: `diff --git a/file_😃.txt b/file_😃.txt
+index abc1234..0000000 111111
+--- a/file_😃.txt
++++ b/file_😃.txt
+@@ -0,0 +8,2 @@
+ context1
++line1
++line2
+ context2
+`,
+			expectedScanItems: []twoms.ScanItem{
+				{
+					ID:      "pre-commit-file_😃.txt",
+					Source:  "file_😃.txt",
 					Content: strPtr("line1\nline2\n"),
+				},
+			},
+			expectedContext: map[string][]LineContext{
+				"file_😃.txt": {
+					{
+						hunkStartLine: 8,
+						index:         1,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
+					{
+						hunkStartLine: 8,
+						index:         2,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
 				},
 			},
 		},
 		{
 			name: "Multiple file changes",
-			diff: `diff --git a/file1.txt b/file2.txt
-similarity index 100%
-rename from file1.txt
-rename to file2.txt
-diff --git a/file3.txt b/file3.txt
-new file mode 100644
-index 0000000..abc1234
-diff --git a/file4.txt b/file4.txt
-new file mode 100644
-index 0000000..abc1234
---- /dev/null
-+++ b/file4.txt
-@@ -0,0 +1,2 @@
+			diff: `diff --git a/file1.txt b/file1.txt
+index abc1234..0000000 111111
+--- a/file1.txt
++++ b/file1.txt
+@@ -0,0 +8,2 @@
+ context1
 +line1
 +line2
-diff --git a/file5.txt b/file5.txt
+ context2
+@@ -0,0 +16,2 @@
+ context3
++line3
++line4
+ context4
+diff --git a/oldname.txt b/newname.txt
+similarity index 80%
+rename from oldname.txt
+rename to newname.txt
+index abc1234..0000000 111111
+--- a/oldname.txt
++++ b/newname.txt
+@@ -1,3 +1,3 @@
+-lineB
++lineB-modified
+diff --git a/file.txt b/file.txt
 deleted file mode 100644
 index abc1234..0000000
---- a/file5.txt
+--- a/file.txt
 +++ /dev/null
 @@ -1,2 +0,0 @@
 -line1
 -line2
-diff --git a/file6.txt b/file7.txt
-similarity index 80%
-rename from file6.txt
-rename to file7.txt
-index abc1234..0000000 111111
---- a/file6.txt
-+++ b/file7.txt
-@@ -1,3 +1,3 @@
--lineB
-+lineB-modified
-diff --git a/file8.txt b/file8.txt
-index abc1234..0000000 111111
---- a/file8.txt
-+++ b/file8.txt
-@@ -0,0 +1,2 @@
-+line1
-+line2`,
-			expected: []twoms.ScanItem{
+`,
+			expectedScanItems: []twoms.ScanItem{
 				{
-					ID:      "pre-commit-file2.txt",
-					Source:  "file2.txt",
-					Content: strPtr(""),
+					ID:      "pre-commit-file1.txt",
+					Source:  "file1.txt",
+					Content: strPtr("line1\nline2\nline3\nline4\n"),
 				},
 				{
-					ID:      "pre-commit-file3.txt",
-					Source:  "file3.txt",
-					Content: strPtr(""),
-				},
-				{
-					ID:      "pre-commit-file4.txt",
-					Source:  "file4.txt",
-					Content: strPtr("line1\nline2\n"),
-				},
-				{
-					ID:      "pre-commit-file5.txt",
-					Source:  "file5.txt",
-					Content: strPtr(""),
-				},
-				{
-					ID:      "pre-commit-file7.txt",
-					Source:  "file7.txt",
+					ID:      "pre-commit-newname.txt",
+					Source:  "newname.txt",
 					Content: strPtr("lineB-modified\n"),
 				},
 				{
-					ID:      "pre-commit-file8.txt",
-					Source:  "file8.txt",
-					Content: strPtr("line1\nline2\n"),
+					ID:      "pre-commit-file.txt",
+					Source:  "file.txt",
+					Content: strPtr(""),
+				},
+			},
+			expectedContext: map[string][]LineContext{
+				"file1.txt": {
+					{
+						hunkStartLine: 8,
+						index:         1,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
+					{
+						hunkStartLine: 8,
+						index:         2,
+						context:       strPtr("context1\nline1\nline2\ncontext2\n"),
+					},
+					{
+						hunkStartLine: 16,
+						index:         1,
+						context:       strPtr("context3\nline3\nline4\ncontext4\n"),
+					},
+					{
+						hunkStartLine: 16,
+						index:         2,
+						context:       strPtr("context3\nline3\nline4\ncontext4\n"),
+					},
+				},
+				"newname.txt": {
+					{
+						hunkStartLine: 1,
+						index:         0,
+						context:       strPtr("lineB-modified\n"),
+					},
 				},
 			},
 		},
@@ -196,8 +299,10 @@ index abc1234..0000000 111111
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := parseGitDiff(tc.diff)
-			assert.Equal(t, tc.expected, actual)
+			actualScanItems, actualContext, err := parseGitDiff(tc.diff)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedScanItems, actualScanItems)
+			assert.Equal(t, tc.expectedContext, actualContext)
 		})
 	}
 }

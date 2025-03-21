@@ -3,34 +3,40 @@ package hooks
 import (
 	"fmt"
 	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/fatih/color"
+	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type LineContext struct {
-	lineNumber int
-	context    *string
+	hunkStartLine *int
+	index         int
+	context       *string
 }
 
-var diffHeaderRegex = regexp.MustCompile(`^diff --git a/(.+) b/(.+)$`)
+var diffHeaderRegex = regexp.MustCompile(`^diff --git\s+"?a/(.+?)"?\s+"?b/(.+?)"?$`)
 var hunkLineNumber = regexp.MustCompile(`^@@\s*-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s*@@`)
 
 // Scan runs the 2ms binary against the git diff on the pre-commit event
 func Scan() error {
-	fmt.Println("Running 2ms scan on git diff...")
+	color.NoColor = false
 
 	report, fileLineContextMap, err := scanAndGenerateReport()
 	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		fmt.Println("Error:", err)
+		return fmt.Errorf("failed to run scan: %w", err)
 	}
 
-	printReport(report, fileLineContextMap)
+	if report.TotalSecretsFound > 0 {
+		printReport(report, fileLineContextMap)
+		os.Exit(1)
+	}
 	return nil
 }
 
@@ -38,81 +44,56 @@ func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error
 	// Get the git diff
 	cmd := exec.Command("git", "diff", "--cached")
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	}
-
 	diffFiles := string(output)
-	fileChanges, fileLineContextMap, err := parseGitDiff(diffFiles)
-	if err != nil {
-		return nil, nil, err
-	}
 
+	// Create a channel for dynamically receiving ScanItems.
+	itemsCh := make(chan twoms.ScanItem)
+
+	// Use a done channel to wait for parseGitDiff to finish.
+	done := make(chan struct{})
+	var fileLineContextMap map[string][]LineContext
+	var parseErr error
+
+	// Launch the diff parser as a goroutine.
+	go func() {
+		fileLineContextMap, parseErr = parseGitDiff(diffFiles, itemsCh)
+		close(done)
+	}()
+
+	// Get any ignored result IDs.
 	ignoredResultIds, err := getIgnoredResultIds()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Create a scanner and process items dynamically.
 	scanner := twoms.NewScanner()
-	report, err := scanner.Scan(fileChanges, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
+	report, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
+	// Wait for parseGitDiff to complete.
+	<-done
+
+	if parseErr != nil {
+		return nil, nil, parseErr
+	}
 	return report, fileLineContextMap, err
 }
 
-func printReport(report *reporting.Report, fileLineContextMap map[string][]LineContext) {
-	for sha, results := range report.Results {
-		for _, result := range results {
-			color.New(color.FgRed).Printf("Secret type: %s\n", result.RuleDescription)
-			color.New(color.FgYellow).Printf("Secret severity: %.1f\n", result.CvssScore)
-			color.New(color.FgCyan).Printf("Secret SHA: %s\n", sha)
-			color.New(color.FgGreen).Printf("File path: %s\n", result.Source)
-
-			// Retrieve the LineContext for the secret (using result.StartLine as index)
-			lineContext := fileLineContextMap[result.Source][result.StartLine]
-			color.New(color.FgMagenta).Printf("Line the secret was added to: %d\n", lineContext.lineNumber)
-			color.New(color.FgWhite).Printf("Code Diff where the secret is added:\n")
-
-			// Print each line of the diff with color based on its first character.
-			printDiffWithColors(*lineContext.context)
-			fmt.Println()
-		}
-	}
-}
-
-func printDiffWithColors(diff string) {
-	lines := strings.Split(diff, "\n")
-	for _, line := range lines {
-		if len(line) == 0 {
-			fmt.Println()
-			continue
-		}
-		switch line[0] {
-		case '-':
-			color.New(color.FgRed).Println(line)
-		case '+':
-			color.New(color.FgGreen).Println(line)
-		case ' ':
-			fallthrough
-		default:
-			color.New(color.FgWhite).Println(line)
-		}
-	}
-}
-
-func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, error) {
-	var changes []twoms.ScanItem
-	var currentFile *twoms.ScanItem
-	var builder strings.Builder
-	// will store the mapping: file name -> list of LineContext entries
+func parseGitDiff(diff string, out chan<- twoms.ScanItem) (map[string][]LineContext, error) {
+	// Mapping: file name -> slice of LineContext entries.
 	fileLineContextMap := make(map[string][]LineContext)
 
-	// Variables for tracking the current hunk state.
-	var isProcessingContent bool
-	var currentLineNumberAddition int
-	var currentLineNumberDeletion int
-	var currentAdditionLineNumbers []int
-	// currentHunkContext accumulates the hunk context (content of additions and context lines)
-	currentHunkContext := ""
+	var currentFile *twoms.ScanItem
+	var builder strings.Builder
+
+	// Hunk-related variables.
+	var currentHunkStartLine *int
+	var currentHunkIndex int
+	var currentAddedIndices []int
+	var currentHunkContext string
+	isProcessingContent := false
 
 	lines := strings.Split(diff, "\n")
 	for _, line := range lines {
@@ -120,19 +101,20 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 		if matches := diffHeaderRegex.FindStringSubmatch(line); matches != nil {
 			// Flush the previous file if any.
 			if currentFile != nil {
-				// Flush any pending hunk context for the last hunk.
-				if currentHunkContext != "" && len(currentAdditionLineNumbers) > 0 {
+				if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 					contextCopy := currentHunkContext
-					for _, ln := range currentAdditionLineNumbers {
+					for _, idx := range currentAddedIndices {
 						fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
-							lineNumber: ln,
-							context:    &contextCopy,
+							hunkStartLine: currentHunkStartLine,
+							index:         idx,
+							context:       &contextCopy,
 						})
 					}
 				}
 				content := builder.String()
 				currentFile.Content = &content
-				changes = append(changes, *currentFile)
+				// Send the completed ScanItem.
+				out <- *currentFile
 			}
 			// Start a new file.
 			source := matches[2]
@@ -144,7 +126,7 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 			// Reset hunk-related variables.
 			isProcessingContent = false
 			currentHunkContext = ""
-			currentAdditionLineNumbers = nil
+			currentAddedIndices = nil
 			continue
 		}
 
@@ -155,79 +137,339 @@ func parseGitDiff(diff string) ([]twoms.ScanItem, map[string][]LineContext, erro
 
 		// Check if this line is a hunk header.
 		if matches := hunkLineNumber.FindStringSubmatch(line); matches != nil {
-			// Before starting a new hunk, flush the accumulated hunk context
-			// to all addition lines recorded so far.
-			if currentHunkContext != "" && len(currentAdditionLineNumbers) > 0 {
+			// Flush the accumulated hunk context for previous hunk if any.
+			if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 				contextCopy := currentHunkContext
-				for _, ln := range currentAdditionLineNumbers {
+				for _, idx := range currentAddedIndices {
 					fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
-						lineNumber: ln,
-						context:    &contextCopy,
+						hunkStartLine: currentHunkStartLine,
+						index:         idx,
+						context:       &contextCopy,
 					})
 				}
 			}
 			// Reset hunk-specific accumulators.
 			currentHunkContext = ""
-			currentAdditionLineNumbers = nil
+			currentAddedIndices = nil
+			currentHunkIndex = 0
 
-			newStartDeletion, err := strconv.Atoi(matches[1])
-			if err != nil {
-				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
-			}
+			// Parse the new hunk's starting line from the header.
 			newStartAddition, err := strconv.Atoi(matches[2])
 			if err != nil {
-				return nil, nil, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
+				close(out)
+				return fileLineContextMap, fmt.Errorf("unexpected number format in git diff hunk addition: %w", err)
 			}
-
-			currentLineNumberDeletion = newStartDeletion
-			currentLineNumberAddition = newStartAddition
-
+			temp := new(int)
+			*temp = newStartAddition
+			currentHunkStartLine = temp
 			isProcessingContent = true
 			continue
 		}
 
-		// Skip processing if we haven't started a hunk.
+		// Skip processing if not inside a hunk.
 		if !isProcessingContent {
 			continue
 		}
 
-		// Process lines that belong to a hunk.
+		// Process lines within the hunk.
 		if strings.HasPrefix(line, "+") {
-			// Addition line: record its content (without the '+' marker).
+			// Record addition line without '+'.
 			addedContent := line[1:]
 			builder.WriteString(addedContent + "\n")
-			// Record this line number as one with an addition.
-			currentAdditionLineNumbers = append(currentAdditionLineNumbers, currentLineNumberAddition)
-			// Also add this line to the hunk context.
-			currentHunkContext += fmt.Sprintf("+%12d| %s\n", currentLineNumberAddition, addedContent)
-			currentLineNumberAddition++
-		} else if strings.HasPrefix(line, "-") {
-			removedContent := line[1:]
-			currentHunkContext += fmt.Sprintf("-%12d| %s\n", currentLineNumberDeletion, removedContent)
-			currentLineNumberDeletion++
+			currentAddedIndices = append(currentAddedIndices, currentHunkIndex)
+			currentHunkContext += fmt.Sprintf("%s\n", addedContent)
+			currentHunkIndex++
 		} else if strings.HasPrefix(line, " ") {
+			// Record context line (without leading space).
 			content := line[1:]
-			currentHunkContext += fmt.Sprintf(" %12d| %s\n", currentLineNumberAddition, content)
-			currentLineNumberAddition++
-			currentLineNumberDeletion++
+			currentHunkContext += fmt.Sprintf("%s\n", content)
+			currentHunkIndex++
 		}
 	}
 
+	// Flush any remaining hunk context for the last file.
 	if currentFile != nil {
-		// After processing all lines, flush any remaining hunk context.
-		if currentHunkContext != "" && len(currentAdditionLineNumbers) > 0 {
+		if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 			contextCopy := currentHunkContext
-			for _, ln := range currentAdditionLineNumbers {
+			for _, idx := range currentAddedIndices {
 				fileLineContextMap[currentFile.Source] = append(fileLineContextMap[currentFile.Source], LineContext{
-					lineNumber: ln,
-					context:    &contextCopy,
+					hunkStartLine: currentHunkStartLine,
+					index:         idx,
+					context:       &contextCopy,
 				})
 			}
 		}
 		content := builder.String()
 		currentFile.Content = &content
-		changes = append(changes, *currentFile)
+		out <- *currentFile
+	}
+	close(out)
+	return fileLineContextMap, nil
+}
+
+// printReport prints the report with files sorted by source (asc)
+// and secrets within each file sorted by their start line.
+func printReport(report *reporting.Report, fileLineContextMap map[string][]LineContext) {
+	// Group secrets per file (source).
+	secretsPerFile := make(map[string][]*secrets.Secret)
+	for _, results := range report.Results {
+		for _, result := range results {
+			secretsPerFile[result.Source] = append(secretsPerFile[result.Source], result)
+		}
 	}
 
-	return changes, fileLineContextMap, nil
+	// Get the list of files and sort them alphabetically (ascending).
+	var fileKeys []string
+	for file := range secretsPerFile {
+		fileKeys = append(fileKeys, file)
+	}
+	sort.Strings(fileKeys)
+
+	totalFiles := len(secretsPerFile)
+	totalSecrets := report.TotalSecretsFound
+
+	color.New(color.FgWhite).Printf("Commit scanned for secrets:\n\n")
+	color.New(color.FgWhite).Printf("Detected ")
+	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets"))
+	color.New(color.FgWhite).Printf("in ")
+	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
+
+	fileIndex := 1
+	// Iterate over sorted file keys.
+	for _, file := range fileKeys {
+		secretsInFile := secretsPerFile[file]
+		// Sort the secrets by their start line.
+		sort.Slice(secretsInFile, func(i, j int) bool {
+			return secretsInFile[i].StartLine < secretsInFile[j].StartLine
+		})
+		numberOfSecrets := len(secretsInFile)
+
+		color.New(color.FgWhite).Printf("#%d File: ", fileIndex)
+		color.New(color.FgHiYellow).Printf("%s\n", file)
+		color.New(color.FgRed).Printf("%d ", numberOfSecrets)
+		color.New(color.FgWhite).Printf("%s detected in file\n\n", pluralize(numberOfSecrets, "Secret", "Secrets"))
+
+		repeatedSecretOccurrences := make(map[string]int)
+		for _, secret := range secretsInFile {
+			// Calculate the secret start line using the file line context.
+			secretLineContext := fileLineContextMap[secret.Source][secret.StartLine]
+			secretStartLine := *secretLineContext.hunkStartLine + secretLineContext.index
+
+			color.New(color.FgWhite).Printf("\tSecret detected: ")
+			color.New(color.FgHiYellow).Printf("%s\n", secret.RuleID)
+			color.New(color.FgWhite).Printf("\tResult ID: ")
+			color.New(color.FgHiYellow).Printf("%s\n", secret.ID)
+			color.New(color.FgWhite).Printf("\tRisk Score: ")
+			color.New(color.FgHiYellow).Printf("%.1f\n", secret.CvssScore)
+			color.New(color.FgWhite).Printf("\tLocation: ")
+			color.New(color.FgHiYellow).Printf("Line %d\n", secretStartLine)
+
+			key := fmt.Sprintf("%s:%d", secret.Value, secretStartLine)
+
+			// Handle cases where the same secret appears multiple times on the same line.
+			repeatedIndexPerLine, exists := repeatedSecretOccurrences[key]
+			if !exists {
+				repeatedIndexPerLine = 0
+			}
+			contextBeforeSecretStartLine := getLinesInRange(*secretLineContext.context, 0, secretLineContext.index)
+			repeatedSecretsBeforeLine := strings.Count(contextBeforeSecretStartLine, secret.Value)
+			secretHighlightIndex := repeatedIndexPerLine + repeatedSecretsBeforeLine
+
+			printSecretLinesContext(secret, secretsInFile, secretHighlightIndex, secretLineContext)
+
+			// Update the occurrence count for this secret (value and line combination).
+			repeatedSecretOccurrences[key] = repeatedIndexPerLine + 1
+		}
+		fileIndex++
+	}
+
+	// Print section header.
+	color.New(color.FgWhite).Printf("\nOptions for proceeding with the commit:\n\n")
+
+	// 1) Remediate
+	color.New(color.FgWhite).Printf("  - Remediate detected secrets using the following workflow (")
+	color.New(color.FgGreen).Printf("recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("      1. Remove detected secrets from files and store them securely. Options:\n")
+	color.New(color.FgWhite).Printf("         - Use environmental variables\n")
+	color.New(color.FgWhite).Printf("         - Use a secret management service\n")
+	color.New(color.FgWhite).Printf("         - Use a configuration management tool\n")
+	color.New(color.FgWhite).Printf("         - Encrypt files containing secrets (least secure method)\n")
+	color.New(color.FgWhite).Printf("      2. Commit fixed code.\n\n")
+
+	// 2) Ignore
+	color.New(color.FgWhite).Printf("  - Ignore detected secrets (")
+	color.New(color.FgYellow).Printf("not recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("      Use one of the following commands:\n")
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --all\n")
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultId=id1,id2\n\n")
+
+	// 3) Bypass
+	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")
+	color.New(color.FgRed).Printf("not recommended")
+	color.New(color.FgWhite).Printf("):\n")
+	color.New(color.FgWhite).Printf("      Use one of the following commands based on your OS:\n\n")
+	color.New(color.FgWhite).Printf("        Bash/Zsh:\n")
+	color.New(color.FgHiBlue).Printf("          SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
+	color.New(color.FgWhite).Printf("        Windows CMD:\n")
+	color.New(color.FgHiBlue).Printf("          set SKIP=cx-secret-detection && git commit -m \"<your message>\"\n\n")
+	color.New(color.FgWhite).Printf("        PowerShell:\n")
+	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"; git commit -m \"<your message>\"\n")
+}
+
+func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, text string) string {
+	red := color.New(color.FgRed)
+
+	// Process each secret in the list.
+	for _, s := range secretsToObfuscate {
+		obf := getObfuscatedSecret(s.Value)
+		if s.Value != secretToHighlight.Value {
+			text = strings.ReplaceAll(text, s.Value, obf)
+		} else {
+			// For the secret to highlight, only the occurrence with index repeatedSecretIndex gets red;
+			// the others get white.
+			var result strings.Builder
+			start := 0
+			occurrenceCount := 0
+			for {
+				idx := strings.Index(text[start:], s.Value)
+				if idx == -1 {
+					// Append the remainder of the text.
+					result.WriteString(text[start:])
+					break
+				}
+				idx += start // absolute index
+
+				// Append text before the found occurrence.
+				result.WriteString(text[start:idx])
+				// Decide which color to use for this occurrence.
+				if occurrenceCount == repeatedSecretIndex {
+					// For multi-line secrets, split by newline and wrap each line in red.
+					lines := strings.Split(obf, "\n")
+					for i, l := range lines {
+						// Wrap each non-empty line with the red color.
+						if l != "" {
+							lines[i] = red.Sprint(l)
+						}
+					}
+					result.WriteString(strings.Join(lines, "\n"))
+				} else {
+					result.WriteString(obf)
+				}
+				occurrenceCount++
+				// Move start index past the occurrence.
+				start = idx + len(s.Value)
+			}
+			text = result.String()
+		}
+	}
+	return text
+}
+
+// hasRed returns true if the given line contains the ANSI escape sequence for red.
+func hasRed(line string) bool {
+	// The ANSI escape sequence for red is usually "\x1b[31m" or "\033[31m".
+	return strings.Contains(line, "\x1b[31m") || strings.Contains(line, "\033[31m")
+}
+
+func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, secretLinesContext LineContext) {
+	secretSizeInLines := countSecretLines(secretToHighlight.Value)
+	upperLimit := 2
+	lowerLimit := 2
+	contextCopy := *secretLinesContext.context
+	text := highlightSecret(secretToHighlight, secretsToObfuscate, repeatedSecretIndex, contextCopy)
+	text = getLinesInRange(text, secretLinesContext.index-upperLimit, secretLinesContext.index+secretSizeInLines+lowerLimit)
+	lines := strings.Split(text, "\n")
+
+	startLineNumber := getStartLine(*secretLinesContext.hunkStartLine, secretLinesContext.index-upperLimit)
+	for i, line := range lines {
+		// Compute the actual line number based on the hunk start line.
+		lineNumber := startLineNumber + i
+		var numberStr string
+		if hasRed(line) {
+			numberStr = color.New(color.FgHiYellow).Sprint(lineNumber)
+		} else {
+			numberStr = color.New(color.FgWhite).Sprint(lineNumber)
+		}
+		// Reserve 12 spaces for the line number (right aligned).
+		numberStr = fmt.Sprintf("%12s", numberStr)
+		// Print the line number (colored) followed by the line content.
+		fmt.Printf("\t\t%s | %s\n", numberStr, line)
+	}
+
+	color.New(color.FgWhite).Println("")
+}
+
+// getObfuscatedSecret returns an obfuscated version of secret.
+// It leaves the first 4 non-whitespace characters intact and replaces
+// every subsequent non-whitespace character with "*". Whitespace characters are preserved.
+func getObfuscatedSecret(secret string) string {
+	if len(secret) == 0 {
+		return secret
+	}
+
+	var builder strings.Builder
+	var visibleCount int
+	for _, r := range secret {
+		if unicode.IsSpace(r) {
+			// Preserve whitespace as-is.
+			builder.WriteRune(r)
+			continue
+		}
+		if visibleCount < 4 {
+			builder.WriteRune(r)
+			visibleCount++
+		} else {
+			builder.WriteRune('*')
+		}
+	}
+	return builder.String()
+}
+
+func getStartLine(hunkStartLine, index int) int {
+	if index < 0 {
+		index = 0
+	}
+	return hunkStartLine + index
+}
+
+// getLinesInRange returns the lines from index 'start' (inclusive)
+// to 'end' (exclusive) from the given multi-line text.
+func getLinesInRange(text string, start, end int) string {
+	// Split the text into individual lines.
+	lines := strings.Split(text, "\n")
+
+	// Adjust start and end to valid bounds.
+	if start < 0 {
+		start = 0
+	}
+	if end > len(lines) {
+		end = len(lines)
+	}
+	// Return an empty string if start is greater than or equal to end.
+	if start >= end {
+		return ""
+	}
+
+	// Join and return only the lines from start to end.
+	return strings.Join(lines[start:end], "\n")
+}
+
+// countSecretLines returns the number of lines in the given secret.
+func countSecretLines(secret string) int {
+	lines := strings.Split(secret, "\n")
+
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		return len(lines) - 1
+	}
+	return len(lines)
+}
+
+// pluralize returns singular if count equals 1, otherwise returns plural.
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }

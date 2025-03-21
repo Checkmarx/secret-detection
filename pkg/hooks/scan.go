@@ -1,13 +1,11 @@
 package hooks
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/fatih/color"
-	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -43,29 +41,25 @@ func Scan() error {
 }
 
 func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error) {
-	// Prepare the git diff command.
+	// Get the git diff
 	cmd := exec.Command("git", "diff", "--cached")
-	// Obtain a pipe for the command’s standard output.
-	stdout, err := cmd.StdoutPipe()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get stdout pipe: %w", err)
+		return nil, nil, fmt.Errorf("failed to get git diff: %v\n%s", err, output)
 	}
-	// Start the command.
-	if err := cmd.Start(); err != nil {
-		return nil, nil, fmt.Errorf("failed to start git diff command: %w", err)
-	}
+	diffFiles := string(output)
 
-	// Create a channel to receive ScanItems as they are parsed.
+	// Create a channel for dynamically receiving ScanItems.
 	itemsCh := make(chan twoms.ScanItem)
-	// Use a done channel to wait for the parser to finish.
+
+	// Use a done channel to wait for parseGitDiff to finish.
 	done := make(chan struct{})
 	var fileLineContextMap map[string][]LineContext
 	var parseErr error
 
-	// Launch the streaming diff parser in a goroutine.
+	// Launch the diff parser as a goroutine.
 	go func() {
-		// parseGitDiffStream reads from the stdout pipe.
-		fileLineContextMap, parseErr = parseGitDiff(stdout, itemsCh)
+		fileLineContextMap, parseErr = parseGitDiff(diffFiles, itemsCh)
 		close(done)
 	}()
 
@@ -75,16 +69,11 @@ func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error
 		return nil, nil, err
 	}
 
-	// Create a scanner to process ScanItems as they arrive.
+	// Create a scanner and process items dynamically.
 	scanner := twoms.NewScanner()
 	report, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{IgnoreResultIds: ignoredResultIds})
-	// Wait for the parser to complete.
+	// Wait for parseGitDiff to complete.
 	<-done
-
-	// Wait for the git diff command to finish.
-	if err := cmd.Wait(); err != nil {
-		return nil, nil, fmt.Errorf("git diff command error: %w", err)
-	}
 
 	if parseErr != nil {
 		return nil, nil, parseErr
@@ -92,9 +81,10 @@ func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error
 	return report, fileLineContextMap, err
 }
 
-func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineContext, error) {
+func parseGitDiff(diff string, out chan<- twoms.ScanItem) (map[string][]LineContext, error) {
 	// Mapping: file name -> slice of LineContext entries.
 	fileLineContextMap := make(map[string][]LineContext)
+
 	var currentFile *twoms.ScanItem
 	var builder strings.Builder
 
@@ -105,12 +95,11 @@ func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineCont
 	var currentHunkContext string
 	isProcessingContent := false
 
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
+	lines := strings.Split(diff, "\n")
+	for _, line := range lines {
 		// Check for a diff file header.
 		if matches := diffHeaderRegex.FindStringSubmatch(line); matches != nil {
-			// Flush previous file if any.
+			// Flush the previous file if any.
 			if currentFile != nil {
 				if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 					contextCopy := currentHunkContext
@@ -124,6 +113,7 @@ func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineCont
 				}
 				content := builder.String()
 				currentFile.Content = &content
+				// Send the completed ScanItem.
 				out <- *currentFile
 			}
 			// Start a new file.
@@ -140,14 +130,14 @@ func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineCont
 			continue
 		}
 
-		// Skip if no active file.
+		// Process only if a file is active.
 		if currentFile == nil {
 			continue
 		}
 
-		// Check for a hunk header.
+		// Check if this line is a hunk header.
 		if matches := hunkLineNumber.FindStringSubmatch(line); matches != nil {
-			// Flush previous hunk context.
+			// Flush the accumulated hunk context for previous hunk if any.
 			if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 				contextCopy := currentHunkContext
 				for _, idx := range currentAddedIndices {
@@ -158,12 +148,12 @@ func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineCont
 					})
 				}
 			}
-			// Reset hunk accumulators.
+			// Reset hunk-specific accumulators.
 			currentHunkContext = ""
 			currentAddedIndices = nil
 			currentHunkIndex = 0
 
-			// Parse the new hunk's starting addition line.
+			// Parse the new hunk's starting line from the header.
 			newStartAddition, err := strconv.Atoi(matches[2])
 			if err != nil {
 				close(out)
@@ -176,31 +166,28 @@ func parseGitDiff(r io.Reader, out chan<- twoms.ScanItem) (map[string][]LineCont
 			continue
 		}
 
-		// If not inside a hunk, skip.
+		// Skip processing if not inside a hunk.
 		if !isProcessingContent {
 			continue
 		}
 
-		// Process hunk lines.
+		// Process lines within the hunk.
 		if strings.HasPrefix(line, "+") {
+			// Record addition line without '+'.
 			addedContent := line[1:]
 			builder.WriteString(addedContent + "\n")
 			currentAddedIndices = append(currentAddedIndices, currentHunkIndex)
 			currentHunkContext += fmt.Sprintf("%s\n", addedContent)
 			currentHunkIndex++
 		} else if strings.HasPrefix(line, " ") {
+			// Record context line (without leading space).
 			content := line[1:]
 			currentHunkContext += fmt.Sprintf("%s\n", content)
 			currentHunkIndex++
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		close(out)
-		return fileLineContextMap, fmt.Errorf("error reading git diff: %w", err)
-	}
-
-	// Flush the last file.
+	// Flush any remaining hunk context for the last file.
 	if currentFile != nil {
 		if currentHunkContext != "" && len(currentAddedIndices) > 0 {
 			contextCopy := currentHunkContext

@@ -6,7 +6,6 @@ import (
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
-	"github.com/checkmarx/2ms/plugins"
 	"github.com/fatih/color"
 	"os"
 	"os/exec"
@@ -59,12 +58,14 @@ func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error
 	}
 	diffFiles := string(output)
 
-	itemsCh := make(chan plugins.ISourceItem, 1000)
+	// Create a channel for dynamically receiving ScanItems.
+	itemsCh := make(chan twoms.ScanItem)
 	var fileLineContextMap map[string][]LineContext
 	var parseErr error
 
+	// Launch the diff parser as a goroutine.
 	go func() {
-		// parseGitDiff will send each item on itemsCh and close it when done.
+		// parseGitDiff will send each ScanItem on itemsCh and close it when done.
 		fileLineContextMap, parseErr = parseGitDiff(diffFiles, itemsCh)
 	}()
 
@@ -85,7 +86,7 @@ func scanAndGenerateReport() (*reporting.Report, map[string][]LineContext, error
 	return report, fileLineContextMap, err
 }
 
-func parseGitDiff(diff string, out chan<- plugins.ISourceItem) (map[string][]LineContext, error) {
+func parseGitDiff(diff string, out chan<- twoms.ScanItem) (map[string][]LineContext, error) {
 	var currentFile *twoms.ScanItem
 
 	// Obtain builders from the pool.

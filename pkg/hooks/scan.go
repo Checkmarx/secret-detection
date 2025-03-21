@@ -247,7 +247,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 
 			color.New(color.FgWhite).Printf("\tSecret detected: ")
 			color.New(color.FgHiYellow).Printf("%s\n", secret.RuleID)
-			color.New(color.FgWhite).Printf("\tSHA: ")
+			color.New(color.FgWhite).Printf("\tResult ID: ")
 			color.New(color.FgHiYellow).Printf("%s\n", secret.ID)
 			color.New(color.FgWhite).Printf("\tRisk Score: ")
 			color.New(color.FgHiYellow).Printf("%.1f\n", secret.CvssScore)
@@ -291,15 +291,21 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 	color.New(color.FgWhite).Printf("  - Ignore detected secrets (")
 	color.New(color.FgYellow).Printf("not recommended")
 	color.New(color.FgWhite).Printf("):\n")
-	color.New(color.FgWhite).Printf("  Run command: ")
-	color.New(color.FgHiBlue).Print("cx hooks pre-commit secrets-ignore --all\n\n")
+	color.New(color.FgWhite).Printf("      Use one of the following commands:\n")
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --all\n")
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultId=id1,id2\n\n")
 
 	// 3) Bypass
 	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")
 	color.New(color.FgRed).Printf("not recommended")
 	color.New(color.FgWhite).Printf("):\n")
-	color.New(color.FgWhite).Printf("  Use command: ")
-	color.New(color.FgHiBlue).Print("SKIP=cx-secret-detection git commit -m \"<your message>\"\n")
+	color.New(color.FgWhite).Printf("      Use one of the following commands based on your OS:\n\n")
+	color.New(color.FgWhite).Printf("        Bash/Zsh:\n")
+	color.New(color.FgHiBlue).Printf("          SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
+	color.New(color.FgWhite).Printf("        Windows CMD:\n")
+	color.New(color.FgHiBlue).Printf("          set SKIP=cx-secret-detection && git commit -m \"<your message>\"\n\n")
+	color.New(color.FgWhite).Printf("        PowerShell:\n")
+	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"; git commit -m \"<your message>\"\n")
 }
 
 func highlightSecret(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, text string) string {

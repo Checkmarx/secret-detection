@@ -44,29 +44,42 @@ func uninstallLocal() error {
 
 // uninstallGlobal removes the cx-secret-detection hook from the global .pre-commit-config.yaml
 func uninstallGlobal() error {
-	fmt.Println("Uninstalling global cx-secret-detection hook...")
+	fmt.Println("Uninstalling global pre-commit hooks...")
 
+	// Determine the user's home directory.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("could not determine home directory: %v", err)
 	}
 
-	configFilePath := filepath.Join(homeDir, ".pre-commit-config.yaml")
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("no global .pre-commit-config.yaml found")
+	// Define the Git template directory and hooks subdirectory.
+	templateDir := filepath.Join(homeDir, ".git-templates")
+	hooksDir := filepath.Join(templateDir, "hooks")
+
+	// Path to the global pre-commit hook script.
+	preCommitHookPath := filepath.Join(hooksDir, "pre-commit")
+
+	// Remove the pre-commit hook script if it exists.
+	if _, err := os.Stat(preCommitHookPath); err == nil {
+		if err := os.Remove(preCommitHookPath); err != nil {
+			return fmt.Errorf("failed to remove pre-commit hook script: %v", err)
+		}
+		fmt.Println("Removed pre-commit hook script.")
+	} else if os.IsNotExist(err) {
+		fmt.Println("No pre-commit hook script found.")
+	} else {
+		return fmt.Errorf("failed to check pre-commit hook script: %v", err)
 	}
 
-	if err := removeHookFromConfig(configFilePath); err != nil {
-		return err
-	}
-
-	// Optionally unset templateDir if it was set
+	// Unset the Git template directory configuration.
 	cmd := exec.Command("git", "config", "--global", "--unset", "init.templateDir")
 	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("Warning: failed to unset init.templateDir: %v\n%s", err, output)
+		return fmt.Errorf("failed to unset git init.templateDir: %v\n%s", err, output)
 	}
 
-	fmt.Println("Global cx-secret-detection hook uninstalled successfully.")
+	fmt.Println("Unset git init.templateDir configuration.")
+
+	fmt.Println("Global pre-commit hooks uninstalled successfully.")
 	return nil
 }
 

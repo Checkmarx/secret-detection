@@ -48,7 +48,7 @@ func installLocal() error {
 	return nil
 }
 
-// installGlobal installs global pre-commit hooks (without touching core.hooksPath).
+// installGlobal sets up global pre-commit hooks using a Git template directory.
 func installGlobal() error {
 	fmt.Println("Installing global pre-commit hooks...")
 
@@ -58,20 +58,20 @@ func installGlobal() error {
 		return fmt.Errorf("could not determine home directory: %v", err)
 	}
 
-	// Define the global Git template directory.
-	gitTemplateDir := filepath.Join(homeDir, ".git-templates", "hooks")
+	// Define the Git template directory and hooks subdirectory.
+	templateDir := filepath.Join(homeDir, ".git-templates")
+	hooksDir := filepath.Join(templateDir, "hooks")
 
 	// Create the hooks directory if it doesn't exist.
-	if err := os.MkdirAll(gitTemplateDir, 0755); err != nil {
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
 		return fmt.Errorf("failed to create git template hooks directory: %v", err)
 	}
 
 	// Path to the global pre-commit hook script.
-	preCommitHookPath := filepath.Join(gitTemplateDir, "pre-commit")
+	preCommitHookPath := filepath.Join(hooksDir, "pre-commit")
 
 	// Write the pre-commit hook script.
 	hookScript := `#!/bin/sh
-# Global pre-commit hook to run Cx Secret Detection
 cx hooks pre-commit secrets-scan
 `
 	if err := os.WriteFile(preCommitHookPath, []byte(hookScript), 0755); err != nil {
@@ -79,7 +79,7 @@ cx hooks pre-commit secrets-scan
 	}
 
 	// Configure Git to use the template directory for new repositories.
-	cmd := exec.Command("git", "config", "--global", "init.templateDir", filepath.Join(homeDir, ".git-templates"))
+	cmd := exec.Command("git", "config", "--global", "init.templateDir", templateDir)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to set git init.templateDir: %v\n%s", err, output)
 	}

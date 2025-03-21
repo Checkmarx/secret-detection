@@ -261,7 +261,7 @@ func printReport(report *reporting.Report, fileLineContextMap map[string][]LineC
 			if !exists {
 				repeatedIndexPerLine = 0
 			}
-			contextBeforeSecretStartLine := getNLines(*secretLineContext.context, secretLineContext.index)
+			contextBeforeSecretStartLine := getLinesInRange(*secretLineContext.context, 0, secretLineContext.index)
 			repeatedSecretsBeforeLine := strings.Count(contextBeforeSecretStartLine, secret.Value)
 			secretHighlightIndex := repeatedIndexPerLine + repeatedSecretsBeforeLine
 
@@ -358,12 +358,18 @@ func hasRed(line string) bool {
 }
 
 func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, secretLinesContext LineContext) {
+	secretSizeInLines := countSecretLines(secretToHighlight.Value)
+	upperLimit := 3
+	lowerLimit := 3
 	contextCopy := *secretLinesContext.context
 	text := highlightSecret(secretToHighlight, secretsToObfuscate, repeatedSecretIndex, contextCopy)
+	text = getLinesInRange(text, secretLinesContext.index-upperLimit, secretLinesContext.index+secretSizeInLines+lowerLimit)
 	lines := strings.Split(text, "\n")
+
+	startLineNumber := getStartLine(*secretLinesContext.hunkStartLine, secretLinesContext.index-upperLimit)
 	for i, line := range lines {
 		// Compute the actual line number based on the hunk start line.
-		lineNumber := *secretLinesContext.hunkStartLine + i
+		lineNumber := startLineNumber + i
 		var numberStr string
 		if hasRed(line) {
 			numberStr = color.New(color.FgHiYellow).Sprint(lineNumber)
@@ -405,18 +411,43 @@ func getObfuscatedSecret(secret string) string {
 	return builder.String()
 }
 
-// getNLines returns only the first x lines from the given multi-line text.
-func getNLines(text string, n int) string {
+func getStartLine(hunkStartLine, index int) int {
+	if index < 0 {
+		index = 0
+	}
+	return hunkStartLine + index
+}
+
+// getLinesInRange returns the lines from index 'start' (inclusive)
+// to 'end' (exclusive) from the given multi-line text.
+func getLinesInRange(text string, start, end int) string {
 	// Split the text into individual lines.
 	lines := strings.Split(text, "\n")
 
-	// If x is greater than the total number of lines, adjust x.
-	if n > len(lines) {
-		n = len(lines)
+	// Adjust start and end to valid bounds.
+	if start < 0 {
+		start = 0
+	}
+	if end > len(lines) {
+		end = len(lines)
+	}
+	// Return an empty string if start is greater than or equal to end.
+	if start >= end {
+		return ""
 	}
 
-	// Join and return only the first x lines.
-	return strings.Join(lines[:n], "\n")
+	// Join and return only the lines from start to end.
+	return strings.Join(lines[start:end], "\n")
+}
+
+// countSecretLines returns the number of lines in the given secret.
+func countSecretLines(secret string) int {
+	lines := strings.Split(secret, "\n")
+
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		return len(lines) - 1
+	}
+	return len(lines)
 }
 
 // pluralize returns singular if count equals 1, otherwise returns plural.

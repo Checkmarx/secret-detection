@@ -3,7 +3,6 @@ package hooks
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/Checkmarx/secret-detection/pkg/config"
 	"gopkg.in/yaml.v2"
@@ -37,24 +36,19 @@ func updateLocal() error {
 
 // updateGlobal updates the cx-secret-detection hook in the global .pre-commit-config.yaml
 func updateGlobal() error {
-	fmt.Println("Updating global cx-secret-detection hook...")
+	fmt.Println("Updating global pre-commit hooks...")
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("could not determine home directory: %v", err)
+	// Uninstall the existing global pre-commit hooks.
+	if err := uninstallGlobal(); err != nil {
+		return fmt.Errorf("failed to uninstall existing global pre-commit hooks: %v", err)
 	}
 
-	configFilePath := filepath.Join(homeDir, ".pre-commit-config.yaml")
-
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("no global .pre-commit-config.yaml found")
+	// Install the new global pre-commit hooks.
+	if err := installGlobal(); err != nil {
+		return fmt.Errorf("failed to install new global pre-commit hooks: %v", err)
 	}
 
-	if err := updateHookInConfig(configFilePath); err != nil {
-		return err
-	}
-
-	fmt.Println("Global cx-secret-detection hook updated successfully.")
+	fmt.Println("Global pre-commit hooks updated successfully.")
 	return nil
 }
 

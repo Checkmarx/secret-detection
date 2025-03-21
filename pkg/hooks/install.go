@@ -48,43 +48,43 @@ func installLocal() error {
 	return nil
 }
 
-// installGlobal installs global pre-commit hooks (without touching core.hooksPath).
+// installGlobal sets up global pre-commit hooks using a Git template directory.
 func installGlobal() error {
 	fmt.Println("Installing global pre-commit hooks...")
 
+	// Determine the user's home directory.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("could not determine home directory: %v", err)
 	}
 
-	configFilePath := filepath.Join(homeDir, ".pre-commit-config.yaml")
+	// Define the Git template directory and hooks subdirectory.
+	templateDir := filepath.Join(homeDir, ".git-templates")
+	hooksDir := filepath.Join(templateDir, "hooks")
 
-	// Ensure the global configuration file exists
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		if err := config.WritePreloadedConfig(configFilePath); err != nil {
-			return fmt.Errorf("failed to write global .pre-commit-config.yaml: %v", err)
-		}
-	} else {
-		if err := updateConfigFile(configFilePath); err != nil {
-			return fmt.Errorf("failed to update global .pre-commit-config.yaml: %v", err)
-		}
+	// Create the hooks directory if it doesn't exist.
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return fmt.Errorf("failed to create git template hooks directory: %v", err)
 	}
 
-	// Unset core.hooksPath to avoid conflicts
-	cmd := exec.Command("git", "config", "--global", "--unset", "core.hooksPath")
+	// Path to the global pre-commit hook script.
+	preCommitHookPath := filepath.Join(hooksDir, "pre-commit")
+
+	// Write the pre-commit hook script.
+	hookScript := `#!/bin/sh
+cx hooks pre-commit secrets-scan
+`
+	if err := os.WriteFile(preCommitHookPath, []byte(hookScript), 0755); err != nil {
+		return fmt.Errorf("failed to write pre-commit hook script: %v", err)
+	}
+
+	// Configure Git to use the template directory for new repositories.
+	cmd := exec.Command("git", "config", "--global", "init.templateDir", templateDir)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("Warning: failed to unset core.hooksPath: %v\n%s", err, output)
+		return fmt.Errorf("failed to set git init.templateDir: %v\n%s", err, output)
 	}
 
-	// Install the pre-commit hooks using the global configuration
-	cmd = exec.Command("pre-commit", "install", "--config", configFilePath)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to install global pre-commit hooks: %v\n%s", err, output)
-	}
-
-	fmt.Println(string(output))
-	fmt.Printf("Global pre-commit hooks installed using config at: %s\n", configFilePath)
+	fmt.Println("Global pre-commit hooks installed successfully.")
 	return nil
 }
 

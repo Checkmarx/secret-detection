@@ -359,8 +359,8 @@ func hasRed(line string) bool {
 
 func printSecretLinesContext(secretToHighlight *secrets.Secret, secretsToObfuscate []*secrets.Secret, repeatedSecretIndex int, secretLinesContext LineContext) {
 	secretSizeInLines := countSecretLines(secretToHighlight.Value)
-	upperLimit := 3
-	lowerLimit := 3
+	upperLimit := 2
+	lowerLimit := 2
 	contextCopy := *secretLinesContext.context
 	text := highlightSecret(secretToHighlight, secretsToObfuscate, repeatedSecretIndex, contextCopy)
 	text = getLinesInRange(text, secretLinesContext.index-upperLimit, secretLinesContext.index+secretSizeInLines+lowerLimit)

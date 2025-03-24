@@ -136,7 +136,7 @@ func printOptions() {
 	color.New(color.FgWhite).Printf("):\n")
 	color.New(color.FgWhite).Printf("      Use one of the following commands:\n")
 	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --all\n")
-	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultId=id1,id2\n\n")
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultIds=id1,id2\n\n")
 
 	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")
 	color.New(color.FgRed).Printf("not recommended")

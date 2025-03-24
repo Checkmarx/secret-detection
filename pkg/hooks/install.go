@@ -53,23 +53,27 @@ func installLocal() error {
 func installGlobal() error {
 	fmt.Println("Installing global pre-commit hook...")
 
+	var globalHooksPath string
+
 	// Retrieve the global hooks path from Git configuration.
 	cmd := exec.Command("git", "config", "--global", "core.hooksPath")
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("failed to get global hooks path: %v", err)
-	}
-
-	// Trim any extraneous whitespace from the output.
-	globalHooksPath := strings.TrimSpace(string(output))
-
-	// If core.hooksPath is not set, default to ~/.git/hooks.
-	if globalHooksPath == "" {
+		// If the hooks path is not set, default to ~/.git/hooks.
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("could not determine home directory: %v", err)
 		}
 		globalHooksPath = filepath.Join(homeDir, ".git", "hooks")
+
+		// Optionally, set this as the global hooks path in Git configuration.
+		cmd := exec.Command("git", "config", "--global", "core.hooksPath", globalHooksPath)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to set global hooks path: %v", err)
+		}
+	} else {
+		// Trim any extraneous whitespace from the output.
+		globalHooksPath = strings.TrimSpace(string(output))
 	}
 
 	// Ensure the global hooks directory exists.

@@ -37,7 +37,7 @@ func uninstallLocal() error {
 func uninstallGlobal() error {
 	fmt.Println("Uninstalling global pre-commit hook...")
 
-	// Retrieve the global hooks path from Git configuration.
+	// Retrieve the global hooks path from Git configuration
 	cmd := exec.Command("git", "config", "--global", "core.hooksPath")
 	output, err := cmd.Output()
 	if err != nil {
@@ -45,8 +45,9 @@ func uninstallGlobal() error {
 	}
 
 	globalHooksPath := filepath.Clean(string(output))
+
+	// If core.hooksPath is not set, default to ~/.git/hooks
 	if globalHooksPath == "" {
-		// Default to ~/.git/hooks if core.hooksPath is not set.
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("could not determine home directory: %v", err)
@@ -54,18 +55,27 @@ func uninstallGlobal() error {
 		globalHooksPath = filepath.Join(homeDir, ".git", "hooks")
 	}
 
-	// Path to the global pre-commit hook script.
+	// Path to the global pre-commit hook script
 	preCommitHookPath := filepath.Join(globalHooksPath, "pre-commit")
 
-	// Remove the pre-commit hook script.
-	if err := os.Remove(preCommitHookPath); err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("No global pre-commit hook found.")
-			return nil
+	// Remove the pre-commit hook script if it exists
+	if _, err := os.Stat(preCommitHookPath); err == nil {
+		if err := os.Remove(preCommitHookPath); err != nil {
+			return fmt.Errorf("failed to remove global pre-commit hook: %v", err)
 		}
-		return fmt.Errorf("failed to remove global pre-commit hook: %v", err)
+		fmt.Println("Global pre-commit hook removed successfully.")
+	} else {
+		fmt.Println("No global pre-commit hook found.")
 	}
 
-	fmt.Println("Global pre-commit hook uninstalled successfully.")
+	// Unset the global core.hooksPath configuration if it was set
+	if globalHooksPath != filepath.Join(os.Getenv("HOME"), ".git", "hooks") {
+		cmd = exec.Command("git", "config", "--global", "--unset", "core.hooksPath")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to unset global hooks path: %v", err)
+		}
+		fmt.Println("Unset global core.hooksPath configuration.")
+	}
+
 	return nil
 }

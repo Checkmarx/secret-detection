@@ -2,13 +2,13 @@ package hooks
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/Checkmarx/secret-detection/pkg/config"
 	"gopkg.in/yaml.v2"
+	"os"
+	"os/exec"
 )
 
-// Update updates the cx-secret-detection hook in the .pre-commit-config.yaml file
+// Update refreshes the cx-secret-detection hook in the .pre-commit-config.yaml file.
 func Update(global bool) error {
 	if global {
 		return updateGlobal()
@@ -16,7 +16,7 @@ func Update(global bool) error {
 	return updateLocal()
 }
 
-// updateLocal updates the cx-secret-detection hook in the local .pre-commit-config.yaml
+// updateLocal updates the cx-secret-detection hook in the local .pre-commit-config.yaml.
 func updateLocal() error {
 	fmt.Println("Updating local cx-secret-detection hook...")
 
@@ -30,29 +30,36 @@ func updateLocal() error {
 		return err
 	}
 
+	// Reinstall the pre-commit hooks to apply changes.
+	cmd := exec.Command("pre-commit", "install")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to reinstall local pre-commit hooks: %v\n%s", err, output)
+	}
+
 	fmt.Println("Local cx-secret-detection hook updated successfully.")
 	return nil
 }
 
-// updateGlobal updates the cx-secret-detection hook in the global .pre-commit-config.yaml
+// updateGlobal updates the global pre-commit hook.
 func updateGlobal() error {
-	fmt.Println("Updating global pre-commit hooks...")
+	fmt.Println("Updating global pre-commit hook...")
 
-	// Uninstall the existing global pre-commit hooks.
+	// Uninstall the existing global pre-commit hook.
 	if err := uninstallGlobal(); err != nil {
-		return fmt.Errorf("failed to uninstall existing global pre-commit hooks: %v", err)
+		return fmt.Errorf("failed to uninstall existing global pre-commit hook: %v", err)
 	}
 
-	// Install the new global pre-commit hooks.
+	// Install the new global pre-commit hook.
 	if err := installGlobal(); err != nil {
-		return fmt.Errorf("failed to install new global pre-commit hooks: %v", err)
+		return fmt.Errorf("failed to install new global pre-commit hook: %v", err)
 	}
 
-	fmt.Println("Global pre-commit hooks updated successfully.")
+	fmt.Println("Global pre-commit hook updated successfully.")
 	return nil
 }
 
-// updateHookInConfig updates the cx-secret-detection hook in the given pre-commit config file
+// updateHookInConfig updates the cx-secret-detection hook in the specified pre-commit config file.
 func updateHookInConfig(configFilePath string) error {
 	data, err := os.ReadFile(configFilePath)
 	if err != nil {

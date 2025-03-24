@@ -93,13 +93,13 @@ func runDiffParsing() (map[string][]Hunk, error) {
 }
 
 // sendDiffContentForScanning sends the concatenated hunk content of a file to the scan channel.
-func sendDiffContentForScanning(file string, hunks []Hunk, out chan<- twoms.ScanItem) {
+func sendDiffContentForScanning(file string, hunks []Hunk, items chan<- twoms.ScanItem) {
 	var builder strings.Builder
 	for _, hunk := range hunks {
 		builder.WriteString(hunk.Content)
 	}
 	content := builder.String()
-	out <- twoms.ScanItem{
+	items <- twoms.ScanItem{
 		Content: &content,
 		ID:      fmt.Sprintf("pre-commit-%s", file),
 		Source:  file,

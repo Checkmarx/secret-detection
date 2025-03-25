@@ -147,7 +147,8 @@ func printOptions() {
 	color.New(color.FgWhite).Printf("        Windows CMD:\n")
 	color.New(color.FgHiBlue).Printf("          set SKIP=cx-secret-detection && git commit -m \"<your message>\"\n\n")
 	color.New(color.FgWhite).Printf("        PowerShell:\n")
-	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"; git commit -m \"<your message>\"\n")
+	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"\n")
+	color.New(color.FgHiBlue).Printf("          git commit -m \"<your message>\"\n")
 }
 
 func pluralize(count int, singular, plural string) string {

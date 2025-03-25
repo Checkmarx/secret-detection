@@ -20,6 +20,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Clone AST CLI Repository from pre-commit-hook branch
+        run: |
+          git clone --branch pre-commit-hook https://github.com/Checkmarx/ast-cli.git
+          cd ast-cli
+          go build -o cx ./cmd/cx.go
+          sudo mv cx /usr/local/bin/
+
       - name: Debug Environment Variables
         run: |
           echo "CX_BASE_URI is set"
@@ -32,13 +39,6 @@ jobs:
           CX_BASE_AUTH_URI: ${{ secrets.CX_BASE_AUTH_URI }}
           CX_APIKEY: ${{ secrets.CX_APIKEY }}
           CX_TENANT: ${{ secrets.CX_TENANT }}
-
-      - name: Clone AST CLI Repository from pre-commit-hook branch
-        run: |
-          git clone --branch pre-commit-hook https://github.com/Checkmarx/ast-cli.git
-          cd ast-cli
-          go build -o cx ./cmd/cx.go
-          sudo mv cx /usr/local/bin/
 
       - name: Configure AST CLI
         env:

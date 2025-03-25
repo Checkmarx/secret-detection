@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // Uninstall removes pre-commit hooks, either locally or globally.
@@ -44,7 +45,7 @@ func uninstallGlobal() error {
 		return fmt.Errorf("failed to get global hooks path: %v", err)
 	}
 
-	globalHooksPath := filepath.Clean(string(output))
+	globalHooksPath := filepath.Clean(strings.TrimSpace(string(output)))
 
 	// If core.hooksPath is not set, default to ~/.git/hooks
 	if globalHooksPath == "" {

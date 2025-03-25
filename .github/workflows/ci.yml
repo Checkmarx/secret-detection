@@ -1,4 +1,4 @@
-name: Secret module CI
+name: Secret Module CI
 
 on:
   pull_request:
@@ -8,34 +8,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 #v4.0.0
-      - name: Set up Go version
-        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 #v4
+        uses: actions/checkout@v4.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - run: go version
-      - name: Download AST CLI
+
+      - name: Debug Environment Variables
         run: |
-          git clone --branch pre-commit-hook https://github.com/Checkmarx/ast-cli.git
-          cd ast-cli
-          go build -o cx ./cmd
-          sudo mv cx /usr/local/bin/
-      - name: Configure AST CLI
+          echo "CX_BASE_URI is set"
+          echo "CX_BASE_AUTH_URI is set"
+          echo "CX_APIKEY is set"
+          echo "CX_TENANT is set"
         shell: bash
         env:
           CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
           CX_BASE_AUTH_URI: ${{ secrets.CX_BASE_AUTH_URI }}
           CX_APIKEY: ${{ secrets.CX_APIKEY }}
           CX_TENANT: ${{ secrets.CX_TENANT }}
+
+      - name: Clone AST CLI Repository from pre-commit-hook branch
         run: |
-          echo "Configuring AST CLI..."
+          git clone --branch pre-commit-hook https://github.com/Checkmarx/ast-cli.git
+          cd ast-cli
+          go build -o cx ./cmd/cx.go
+          sudo mv cx /usr/local/bin/
+
+      - name: Configure AST CLI
+        env:
+          CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
+          CX_BASE_AUTH_URI: ${{ secrets.CX_BASE_AUTH_URI }}
+          CX_APIKEY: ${{ secrets.CX_APIKEY }}
+          CX_TENANT: ${{ secrets.CX_TENANT }}
+        run: |
           cx configure set --base-uri "$CX_BASE_URI"
           cx configure set --base-auth-uri "$CX_BASE_AUTH_URI"
           cx configure set --tenant "$CX_TENANT"
           cx auth --apikey "$CX_APIKEY"
-          echo "AST CLI configured."
-      - run: cx version
+
+      - name: Verify AST CLI Installation
+        run: cx version

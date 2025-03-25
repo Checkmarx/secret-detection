@@ -33,10 +33,10 @@ jobs:
           CX_TENANT: ${{ secrets.CX_TENANT }}
         run: |
           echo "Configuring AST CLI..."
-          cx configure set --base-uri "$CX_BASE_URI"
-          cx configure set --base-auth-uri "$CX_BASE_AUTH_URI"
-          cx configure set --tenant "$CX_TENANT"
-          cx configure set --scans-location "./scans"
-          cx auth --apikey "$CX_APIKEY"
+          cx auth \
+          --base-uri "$CX_BASE_URI" \
+          --base-auth-uri "$CX_BASE_AUTH_URI" \
+          --tenant "$CX_TENANT" \
+          --apikey "$CX_APIKEY"
           echo "AST CLI configured."
       - run: cx version

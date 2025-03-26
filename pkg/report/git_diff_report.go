@@ -37,7 +37,7 @@ func PrintGitDiffReport(report *reporting.Report, fileDiffs map[string][]parser.
 	color.New(color.FgWhite).Printf("in ")
 	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
 	if totalSecrets > maxDisplayedResults {
-		color.New(color.FgWhite).Printf("Presenting first 100 results\n\n")
+		color.New(color.FgWhite).Printf("Presenting first %d results\n\n", maxDisplayedResults)
 	}
 
 	printedSecrets := 0

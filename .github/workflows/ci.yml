@@ -14,6 +14,7 @@ jobs:
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 #v4
         with:
           go-version-file: go.mod
+      - run: go version
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -21,16 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install pre-commit framework
-        run: |
-          echo "Installing pre-commit framework in a virtual environment..."
-          python3 -m venv /opt/venv
-          source /opt/venv/bin/activate
-          pip install --upgrade pip
-          pip install pre-commit
-          echo "/opt/venv/bin" >> $GITHUB_PATH
-          echo "pre-commit installed successfully."
-
-      - run: go version
+        uses: pre-commit/action@v3.0.1
 
       - name: Download AST CLI
         run: |

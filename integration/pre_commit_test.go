@@ -1049,6 +1049,69 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		assert.NoError(t, err)
 		assert.Contains(t, string(output), "secrets\n 2 files changed, 24 insertions(+)\n create mode 100644 file1.txt\n create mode 100644 file2.txt")
 	})
+	t.Run("add secrets over the max displayed results limit and commit", func(t *testing.T) {
+		tmpDir, cleanup := setupTmpDir(t)
+		defer cleanup()
+
+		// Initialize a Git repository.
+		cmdGitInit := exec.Command("git", "init")
+		cmdGitInit.Dir = tmpDir
+		if output, err := cmdGitInit.CombinedOutput(); err != nil {
+			t.Fatalf("failed to initialize git repository: %s: %s", err, string(output))
+		}
+
+		// Set dummy user.email.
+		cmdGitConfigEmail := exec.Command("git", "config", "user.email", "dummy@example.com")
+		cmdGitConfigEmail.Dir = tmpDir
+		if output, err := cmdGitConfigEmail.CombinedOutput(); err != nil {
+			t.Fatalf("should not fail to config git dummy email: %s: %s", err, string(output))
+		}
+
+		// Set dummy user.name.
+		cmdGitConfigName := exec.Command("git", "config", "user.name", "dummy Name")
+		cmdGitConfigName.Dir = tmpDir
+		if output, err := cmdGitConfigName.CombinedOutput(); err != nil {
+			t.Fatalf("should not fail to config git dummy name: %s: %s", err, string(output))
+		}
+
+		// Install the secrets git hook.
+		cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
+		cmdPreCommitInstall.Dir = tmpDir
+		_, err := cmdPreCommitInstall.CombinedOutput()
+		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
+
+		// Stage the config file.
+		cmdGitAdd := exec.Command("git", "add", ".pre-commit-config.yaml")
+		cmdGitAdd.Dir = tmpDir
+		if output, err := cmdGitAdd.CombinedOutput(); err != nil {
+			t.Fatalf("failed to stage config file: %s: %s", err, string(output))
+		}
+
+		// Create file.txt with a lot of secrets
+		fileContent := ""
+		for i := 0; i < 500; i++ {
+			fileContent += "ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n"
+		}
+		filePath := filepath.Join(tmpDir, "file.txt")
+		err = os.WriteFile(filePath, []byte(fileContent), 0644)
+		assert.NoError(t, err)
+
+		// Stage the new file
+		cmdGitAdd = exec.Command("git", "add", "file.txt")
+		cmdGitAdd.Dir = tmpDir
+		if output, err := cmdGitAdd.CombinedOutput(); err != nil {
+			t.Fatalf("failed to stage files with secrets: %s: %s", err, string(output))
+		}
+
+		cmdGitCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdGitCommit.Dir = tmpDir
+		output, err := cmdGitCommit.CombinedOutput()
+		assert.Error(t, err)
+
+		assert.Contains(t, string(output), "Detected 500 secrets in 1 file")
+		assert.Contains(t, string(output), "Presenting first 100 results")
+		assert.Equal(t, strings.Count(string(output), "90ee853fb7bf125b6a42c7f4c8d8fcd7f9e8cfb5"), 100)
+	})
 }
 
 func setupTmpDir(t *testing.T) (tmpDir string, cleanup func()) {

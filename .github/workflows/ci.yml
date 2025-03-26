@@ -31,12 +31,16 @@ jobs:
           CX_BASE_AUTH_URI: ${{ secrets.CX_BASE_AUTH_URI }}
           CX_APIKEY: ${{ secrets.CX_APIKEY }}
           CX_TENANT: ${{ secrets.CX_TENANT }}
+          CX_CLIENT_ID: ${{ secrets.CX_CLIENT_ID }}
+          CX_CLIENT_SECRET: ${{ secrets.CX_CLIENT_SECRET }}
         run: |
           echo "Configuring AST CLI..."
-          cx auth \
-          --base-uri "$CX_BASE_URI" \
-          --base-auth-uri "$CX_BASE_AUTH_URI" \
-          --tenant "$CX_TENANT" \
-          --apikey "$CX_APIKEY"
-          echo "AST CLI configured."
+          cx configure set --prop-name cx_base_uri --prop-value "$CX_BASE_URI"
+          cx configure set --prop-name cx_base_auth_uri --prop-value "$CX_BASE_AUTH_URI"
+          cx configure set --prop-name cx_tenant --prop-value "$CX_TENANT"
+          cx configure set --prop-name cx_client_id --prop-value "$CX_CLIENT_ID"
+          cx configure set --prop-name cx_client_secret --prop-value "$CX_CLIENT_SECRET"
+          echo "Authenticating AST CLI..."
+          cx auth validate
+          echo "AST CLI configured and authenticated."
       - run: cx version

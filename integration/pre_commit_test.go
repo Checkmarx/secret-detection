@@ -1108,6 +1108,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		output, err := cmdGitCommit.CombinedOutput()
 		assert.Error(t, err)
 
+		color.NoColor = true
 		assert.Contains(t, string(output), "Detected 500 secrets in 1 file")
 		assert.Contains(t, string(output), "Presenting first 100 results")
 		assert.Equal(t, strings.Count(string(output), "90ee853fb7bf125b6a42c7f4c8d8fcd7f9e8cfb5"), 100)

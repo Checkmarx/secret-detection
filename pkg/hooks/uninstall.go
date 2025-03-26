@@ -62,18 +62,24 @@ func uninstallLocal() error {
 	return nil
 }
 
-// uninstallGlobal removes the global pre-commit hook.
+// uninstallGlobal removes the global pre-commit hook and unsets the global configuration.
 func uninstallGlobal() error {
 	fmt.Println("Uninstalling global pre-commit hook...")
 
 	// Retrieve the global hooks path from Git configuration
 	cmd := exec.Command("git", "config", "--global", "core.hooksPath")
 	output, err := cmd.Output()
+	var globalHooksPath string
 	if err != nil {
-		return fmt.Errorf("failed to get global hooks path: %v", err)
+		// If error indicates that key is not set, treat it as not set.
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			globalHooksPath = ""
+		} else {
+			return fmt.Errorf("failed to get global hooks path: %v", err)
+		}
+	} else {
+		globalHooksPath = filepath.Clean(strings.TrimSpace(string(output)))
 	}
-
-	globalHooksPath := filepath.Clean(strings.TrimSpace(string(output)))
 
 	// If core.hooksPath is not set, default to ~/.git/hooks
 	if globalHooksPath == "" {
@@ -93,17 +99,16 @@ func uninstallGlobal() error {
 			return fmt.Errorf("failed to remove global pre-commit hook: %v", err)
 		}
 		fmt.Println("Global pre-commit hook removed successfully.")
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("error checking pre-commit hook: %v", err)
 	} else {
 		fmt.Println("No global pre-commit hook found.")
 	}
 
-	// Unset the global core.hooksPath configuration if it was set
-	if globalHooksPath != filepath.Join(os.Getenv("HOME"), ".git", "hooks") {
-		cmd = exec.Command("git", "config", "--global", "--unset", "core.hooksPath")
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to unset global hooks path: %v", err)
-		}
-		fmt.Println("Unset global core.hooksPath configuration.")
+	// Unset the global core.hooksPath configuration
+	cmd = exec.Command("git", "config", "--global", "--unset", "core.hooksPath")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to unset global hooks path: %v", err)
 	}
 
 	return nil

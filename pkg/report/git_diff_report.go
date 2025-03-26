@@ -16,6 +16,7 @@ import (
 func PrintGitDiffReport(report *reporting.Report, fileDiffs map[string][]parser.Hunk) {
 	const contextBefore = 2
 	const contextAfter = 2
+	const maxDisplayedResults = 100
 
 	// Group secrets by file.
 	secretsByFile := groupSecretsByFile(report.Results)
@@ -35,8 +36,14 @@ func PrintGitDiffReport(report *reporting.Report, fileDiffs map[string][]parser.
 	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets"))
 	color.New(color.FgWhite).Printf("in ")
 	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
+	if totalSecrets > maxDisplayedResults {
+		color.New(color.FgWhite).Printf("Presenting first 100 results\n\n")
+	}
 
+	printedSecrets := 0
 	fileIndex := 1
+
+resultsLoop:
 	for _, file := range files {
 		secretsInFile := secretsByFile[file]
 		sortSecrets(secretsInFile)
@@ -80,6 +87,13 @@ func PrintGitDiffReport(report *reporting.Report, fileDiffs map[string][]parser.
 				contextContent := ProcessContent(hunk.Content, secretsInFile, secretIdx, hunk.StartLine)
 				secretContext := extractLineRange(contextContent, startIndex, endIndex)
 				fmt.Print(secretContext)
+
+				printedSecrets++
+				// If we've already printed 100 secrets, break out of all loops.
+				if printedSecrets >= maxDisplayedResults {
+					fmt.Println()
+					break resultsLoop
+				}
 			}
 		}
 		fileIndex++

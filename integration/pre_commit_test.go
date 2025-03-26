@@ -1114,7 +1114,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		expectedTotalHeader := white("Detected ") + red("500 secrets ") + white("in ") + red("1 file\n\n")
 		assert.Contains(t, string(output), expectedTotalHeader)
 		assert.Contains(t, string(output), "Presenting first 100 results")
-		assert.Equal(t, strings.Count(string(output), "90ee853fb7bf125b6a42c7f4c8d8fcd7f9e8cfb5"), 100)
+		assert.Equal(t, 100, strings.Count(string(output), "90ee853fb7bf125b6a42c7f4c8d8fcd7f9e8cfb5"))
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/checkmarx/2ms/lib/reporting"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/fatih/color"
+	"github.com/rs/zerolog"
 	"os"
 	"os/exec"
 	"strings"
@@ -30,6 +31,8 @@ func Scan() error {
 
 // runSecretScan executes the secret scan workflow.
 func runSecretScan() (*reporting.Report, map[string][]Hunk, error) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
 	// Execute the diff parsing workflow.
 	fileDiffs, err := runDiffParsing()
 	if err != nil {

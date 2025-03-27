@@ -1,0 +1,64 @@
+name: Secret module CI
+
+on:
+  pull_request:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 #v4.0.0
+
+      - name: Set up Go version
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 #v4
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit framework
+        run: |
+          echo "Installing pre-commit framework in a virtual environment..."
+          python3 -m venv /opt/venv
+          source /opt/venv/bin/activate
+          pip install --upgrade pip
+          pip install pre-commit
+          echo "/opt/venv/bin" >> $GITHUB_PATH
+          echo "pre-commit installed successfully."
+
+      - run: go version
+
+      - name: Download AST CLI
+        run: |
+          git clone --branch pre-commit-hook https://github.com/Checkmarx/ast-cli.git
+          cd ast-cli
+          go build -o cx ./cmd
+          sudo mv cx /usr/local/bin/
+
+      - name: Configure AST CLI
+        shell: bash
+        env:
+          CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
+          CX_BASE_AUTH_URI: ${{ secrets.CX_BASE_AUTH_URI }}
+          CX_APIKEY: ${{ secrets.CX_APIKEY }}
+          CX_TENANT: ${{ secrets.CX_TENANT }}
+          CX_CLIENT_ID: ${{ secrets.CX_CLIENT_ID }}
+          CX_CLIENT_SECRET: ${{ secrets.CX_CLIENT_SECRET }}
+        run: |
+          echo "Configuring AST CLI..."
+          cx configure set --prop-name cx_base_uri --prop-value "$CX_BASE_URI"
+          cx configure set --prop-name cx_base_auth_uri --prop-value "$CX_BASE_AUTH_URI"
+          cx configure set --prop-name cx_tenant --prop-value "$CX_TENANT"
+          cx configure set --prop-name cx_client_id --prop-value "$CX_CLIENT_ID"
+          cx configure set --prop-name cx_client_secret --prop-value "$CX_CLIENT_SECRET"
+          echo "Authenticating AST CLI..."
+          cx auth validate
+          echo "AST CLI configured and authenticated."
+      - run: cx version
+
+      - name: Run unit and integration tests
+        run: go test -v ./...

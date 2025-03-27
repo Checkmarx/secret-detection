@@ -2,9 +2,12 @@ module github.com/Checkmarx/secret-detection
 
 go 1.23.6
 
+toolchain go1.24.1
+
 require (
 	github.com/checkmarx/2ms v1.4.1-0.20250327145719-b78804cb08c7
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.18.0
+	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -34,7 +37,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/rs/zerolog v1.32.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/slack-go/slack v0.12.2 // indirect

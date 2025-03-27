@@ -6,8 +6,8 @@ github.com/bwmarrin/discordgo v0.27.1 h1:ib9AIc/dom1E/fSIulrBwnez0CToJE113ZGt4Ho
 github.com/bwmarrin/discordgo v0.27.1/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
 github.com/charmbracelet/lipgloss v0.7.1 h1:17WMwi7N1b1rVWOjMT+rCh7sQkvDU75B2hbZpc5Kc1E=
 github.com/charmbracelet/lipgloss v0.7.1/go.mod h1:yG0k3giv8Qj8edTCbbg6AlQ5e8KNWpFujkNawKNhE2c=
-github.com/checkmarx/2ms v1.4.1-0.20250321154831-0c1d88dd59a4 h1:KNPJmy3XlhBrGy1FkG6SC3TdwzQYeJ9E224HsKqqeiA=
-github.com/checkmarx/2ms v1.4.1-0.20250321154831-0c1d88dd59a4/go.mod h1:Bnd2YSh8LQSc4fHAFN0BKz8LYThB6qHg3Wn/+H+WZ4I=
+github.com/checkmarx/2ms v1.4.1-0.20250327145719-b78804cb08c7 h1:COsC3skOJeJaSoCPuhLZ0byRGKm+ZHlyw5qm9ydlab0=
+github.com/checkmarx/2ms v1.4.1-0.20250327145719-b78804cb08c7/go.mod h1:Bnd2YSh8LQSc4fHAFN0BKz8LYThB6qHg3Wn/+H+WZ4I=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

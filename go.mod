@@ -3,7 +3,7 @@ module github.com/Checkmarx/secret-detection
 go 1.23.6
 
 require (
-	github.com/checkmarx/2ms v1.4.1-0.20250321154831-0c1d88dd59a4
+	github.com/checkmarx/2ms v1.4.1-0.20250327145719-b78804cb08c7
 	github.com/fatih/color v1.14.1
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0

@@ -12,12 +12,13 @@ require (
 require (
 	github.com/BobuSumisu/aho-corasick v1.0.3 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/bluekeyes/go-gitdiff v0.8.1 // indirect
 	github.com/bwmarrin/discordgo v0.27.1 // indirect
 	github.com/charmbracelet/lipgloss v0.7.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/semgroup v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/gitleaks/go-gitdiff v0.9.0 // indirect
+	github.com/gitleaks/go-gitdiff v0.9.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

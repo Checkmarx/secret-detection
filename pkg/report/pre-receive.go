@@ -65,7 +65,7 @@ func PrintReport(report *reporting.Report) {
 		}
 	}
 
-	sb.WriteString("A pre-receive hook set server side prevented you from push secrets.")
+	sb.WriteString("A pre-receive hook set server side prevented you from push secrets.\n")
 	sb.WriteString("Options for proceeding with the push:\n\n")
 	sb.WriteString("  - Remediate detected secrets using the following workflow:\n")
 	sb.WriteString("      1. Rewrite the git history to remove detected secrets from files and store them securely. Options:\n")

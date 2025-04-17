@@ -148,7 +148,7 @@ func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiff
 	} else {
 		fileName = file.NewName
 	}
-	id := fmt.Sprintf("pre-receive-%s-%s", file.PatchHeader.SHA, fileName)
+	id := fmt.Sprintf("hooks-%s", fileName)
 
 	if addedChanges != "" {
 		source := fmt.Sprintf("Added:%s:%s", file.PatchHeader.SHA, fileName)

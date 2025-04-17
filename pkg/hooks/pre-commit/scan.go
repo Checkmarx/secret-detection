@@ -104,7 +104,7 @@ func sendDiffContentForScanning(file string, hunks []Hunk, items chan<- twoms.Sc
 	content := builder.String()
 	items <- twoms.ScanItem{
 		Content: &content,
-		ID:      fmt.Sprintf("pre-commit-%s", file),
+		ID:      fmt.Sprintf("hooks-%s", file),
 		Source:  file,
 	}
 }

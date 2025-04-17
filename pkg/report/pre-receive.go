@@ -40,7 +40,7 @@ func PrintReport(report *reporting.Report) {
 			}
 			contentType := sourceInfo[0]
 			commitID := sourceInfo[1]
-			fileName := strings.Join(sourceInfo[2:], ":")
+			fileName := strings.Join(sourceInfo[2:], ":") // to handle cases where the file name has ":"
 
 			secretObfuscated := obfuscateSecret(secret.Value)
 
@@ -65,7 +65,19 @@ func PrintReport(report *reporting.Report) {
 		}
 	}
 
-	// TODO add remediation steps
+	sb.WriteString("A pre-receive hook set server side prevented you from push secrets.")
+	sb.WriteString("Options for proceeding with the push:\n\n")
+	sb.WriteString("  - Remediate detected secrets using the following workflow:\n")
+	sb.WriteString("      1. Rewrite the git history to remove detected secrets from files and store them securely. Options:\n")
+	sb.WriteString("         - Use environmental variables\n")
+	sb.WriteString("         - Use a secret management service\n")
+	sb.WriteString("         - Use a configuration management tool\n")
+	sb.WriteString("         - Encrypt files containing secrets (least secure method)\n")
+	sb.WriteString("      2. Push fixed code.\n\n")
+
+	sb.WriteString("  - Ignore detected secrets:\n")
+	sb.WriteString("      TODO\n")
+
 	fmt.Print(sb.String())
 }
 

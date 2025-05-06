@@ -3,8 +3,10 @@ package report
 import (
 	"fmt"
 	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -14,6 +16,7 @@ const (
 	ObfuscatedSecretString = "***"
 	BeginPrivateKeyString  = "-----BEGIN"
 	PrivateKeySeparator    = "-----"
+	maxDisplayedResults    = 100
 )
 
 type FileInfo struct {
@@ -21,62 +24,130 @@ type FileInfo struct {
 	ContentType plugins.DiffType
 }
 
+type SecretInfo struct {
+	secret *secrets.Secret
+	source SourceInfo
+}
+
+type SourceInfo struct {
+	contentType string
+	fileName    string
+}
+
 func PrintReport(report *reporting.Report) {
 	var sb strings.Builder
 	sb.Grow(512 * len(report.Results)) // avoid multiple reallocations
 
-	// TODO write something before Total Secrets Found?
-	sb.WriteString("\nTotal Secrets Found: ")
+	secretsByCommitID := getReportResultsByCommitID(report)
+
+	sb.WriteString("\n----- Cx Secret Scanner Report -----\n")
+	sb.WriteString("\nDetected ")
 	sb.WriteString(strconv.Itoa(report.TotalSecretsFound))
+	sb.WriteString(" secrets across ")
+	sb.WriteString(strconv.Itoa(len(secretsByCommitID)))
+	sb.WriteString(" commits")
+
+	if report.TotalSecretsFound > maxDisplayedResults {
+		sb.WriteString(" (Presenting first ")
+		sb.WriteString(strconv.Itoa(maxDisplayedResults))
+		sb.WriteString(" results)")
+	}
+
 	sb.WriteString("\n\n")
-	resultIndex := 1
 
-	for _, secrets := range report.Results {
-		for _, secret := range secrets {
-			sourceInfo := strings.Split(secret.Source, ":")
-			if len(sourceInfo) < 3 {
-				// TODO handle error? skip? check this
-				continue
-			}
-			contentType := sourceInfo[0]
-			commitID := sourceInfo[1]
-			fileName := strings.Join(sourceInfo[2:], ":") // to handle cases where the file name has ":"
+	commitIDs := make([]string, 0, len(secretsByCommitID))
+	for commitID := range secretsByCommitID {
+		commitIDs = append(commitIDs, commitID)
+	}
+	sort.Strings(commitIDs)
 
-			secretObfuscated := obfuscateSecret(secret.Value)
+	printed := 0
+	commitIndex := 1
 
-			sb.WriteString("Result #")
-			sb.WriteString(strconv.Itoa(resultIndex))
-			sb.WriteString(":\n\tCommit ID: ")
-			sb.WriteString(commitID)
-			sb.WriteString("\n\tFile Path: ")
-			sb.WriteString(fileName)
-			sb.WriteString("\n\tResult ID: ")
-			sb.WriteString(secret.ID)
-			sb.WriteString("\n\tContent Type: ")
-			sb.WriteString(contentType)
-			sb.WriteString("\n\tLocation: Line ")
-			sb.WriteString(strconv.Itoa(secret.StartLine))
-			sb.WriteString("\n\tRule ID: ")
-			sb.WriteString(secret.RuleID)
-			sb.WriteString("\n\tSecret Value: ")
-			sb.WriteString(secretObfuscated)
-			sb.WriteString("\n\n")
-			resultIndex++
+PrintLoop:
+	for _, commitID := range commitIDs {
+		secretsInfo := secretsByCommitID[commitID]
+		secretsByFileName := getSecretsByFileName(secretsInfo)
+
+		numberOfSecretsInCommit := len(secretsInfo)
+		numberOfFiles := len(secretsByFileName)
+
+		sb.WriteString("Commit #")
+		sb.WriteString(strconv.Itoa(commitIndex))
+		sb.WriteString(" (")
+		sb.WriteString(commitID)
+		sb.WriteString("): ")
+		sb.WriteString(strconv.Itoa(numberOfSecretsInCommit))
+		sb.WriteString(pluralize(numberOfSecretsInCommit, " secret", " secrets"))
+		sb.WriteString(" in ")
+		sb.WriteString(strconv.Itoa(numberOfFiles))
+		sb.WriteString(pluralize(numberOfFiles, " file", " files"))
+		sb.WriteString("\n")
+
+		fileNames := make([]string, 0, len(secretsByFileName))
+		for fileName := range secretsByFileName {
+			fileNames = append(fileNames, fileName)
 		}
+		sort.Strings(fileNames)
+
+		for _, fileName := range fileNames {
+			secretsInFile := secretsByFileName[fileName]
+			sort.Slice(secretsInFile, func(i, j int) bool {
+				return secretsInFile[i].secret.StartLine < secretsInFile[j].secret.StartLine
+			})
+
+			numberOfSecretsInFile := len(secretsInFile)
+
+			sb.WriteString("    File: ")
+			sb.WriteString(fileName)
+			sb.WriteString(" (")
+			sb.WriteString(strconv.Itoa(numberOfSecretsInFile))
+			sb.WriteString(pluralize(numberOfSecretsInFile, " secret", " secrets"))
+			sb.WriteString(")\n")
+
+			for _, secret := range secretsInFile {
+				if printed >= maxDisplayedResults {
+					break PrintLoop
+				}
+
+				sb.WriteString("        Result ID       : ")
+				sb.WriteString(secret.secret.ID)
+				sb.WriteString("\n        Secret Detected : ")
+				sb.WriteString(secret.secret.Value)
+				sb.WriteString("\n        Secret Type     : ")
+				sb.WriteString(secret.secret.RuleID)
+				sb.WriteString("\n        Location        : Line ")
+				sb.WriteString(strconv.Itoa(secret.secret.StartLine))
+				sb.WriteString("\n        Content Type    : ")
+				sb.WriteString(secret.source.contentType)
+				sb.WriteString("\n\n")
+
+				printed++
+			}
+		}
+
+		commitIndex++
 	}
 
 	sb.WriteString("A pre-receive hook set server side prevented you from push secrets.\n")
-	sb.WriteString("Options for proceeding with the push:\n\n")
-	sb.WriteString("  - Remediate detected secrets using the following workflow:\n")
-	sb.WriteString("      1. Rewrite the git history to remove detected secrets from files and store them securely. Options:\n")
+	sb.WriteString("To proceed, choose one of the following workflows:\n\n")
+	sb.WriteString("  - Sanitize and Push:\n")
+	sb.WriteString("      1. Rewrite your local Git history to remove all exposed secrets.\n")
+	sb.WriteString("      2. Store secrets securely using one of these methods:\n")
 	sb.WriteString("         - Use environmental variables\n")
 	sb.WriteString("         - Use a secret management service\n")
 	sb.WriteString("         - Use a configuration management tool\n")
 	sb.WriteString("         - Encrypt files containing secrets (least secure method)\n")
-	sb.WriteString("      2. Push fixed code.\n\n")
+	sb.WriteString("      3. Push code.\n\n")
 
 	sb.WriteString("  - Ignore detected secrets:\n")
-	sb.WriteString("      TODO\n")
+	sb.WriteString("      1. Contact your system administrator to update the server-side secret scanner\n")
+	sb.WriteString("          configuration to ignore the detected secret.\n")
+	sb.WriteString("      2. Ask them to redeploy the pre-receive hook with the updated settings.\n")
+	sb.WriteString("      3. Once the new ignore rules are in place, retry pushing your code.\n\n")
+
+	sb.WriteString("You can setup pre-commit secret scanning to avoid rewriting git history in the future:\n")
+	sb.WriteString(" - https://docs.checkmarx.com/en/34965-364702-pre-commit-secret-scanning.html\n\n")
 
 	fmt.Print(sb.String())
 }
@@ -97,4 +168,45 @@ func obfuscateSecret(snippet string) string {
 		truncatedSecret = truncatedSecret[:SecretMaxCharacters] + ObfuscatedSecretString
 	}
 	return truncatedSecret
+}
+
+func getReportResultsByCommitID(report *reporting.Report) map[string][]*SecretInfo {
+	secretsByCommitID := make(map[string][]*SecretInfo)
+
+	for _, results := range report.Results {
+		for _, result := range results {
+			parts := strings.Split(result.Source, ":")
+			if len(parts) < 3 {
+				// TODO handle error? skip? check this
+				continue
+			}
+			// Added:commitID:fileName
+			contentType := parts[0]
+			commitID := parts[1]
+			fileName := strings.Join(parts[2:], ":") // to handle cases where the file name has ":"
+
+			resultCopy := *result
+			resultCopy.Value = obfuscateSecret(result.Value)
+
+			secretInfo := &SecretInfo{}
+			secretInfo.secret = &resultCopy
+			secretInfo.source = SourceInfo{
+				contentType: contentType,
+				fileName:    fileName,
+			}
+
+			secretsByCommitID[commitID] = append(secretsByCommitID[commitID], secretInfo)
+		}
+	}
+
+	return secretsByCommitID
+}
+
+func getSecretsByFileName(secrets []*SecretInfo) map[string][]*SecretInfo {
+	secretsByFile := make(map[string][]*SecretInfo)
+	for _, secret := range secrets {
+		fileName := secret.source.fileName
+		secretsByFile[fileName] = append(secretsByFile[fileName], secret)
+	}
+	return secretsByFile
 }

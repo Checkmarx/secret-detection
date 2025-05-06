@@ -165,13 +165,6 @@ func printOptions() {
 	color.New(color.FgHiBlue).Printf("          git commit -m \"<your message>\"\n")
 }
 
-func pluralize(count int, singular, plural string) string {
-	if count == 1 {
-		return singular
-	}
-	return plural
-}
-
 func getSecretGlobalStartLine(secretLine int, hunks []parser.Hunk, hunkIndex int) int {
 	cumulative := 0
 	for i, hunk := range hunks {

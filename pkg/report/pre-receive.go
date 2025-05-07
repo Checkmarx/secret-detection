@@ -175,15 +175,15 @@ func getReportResultsByCommitID(report *reporting.Report) map[string][]*SecretIn
 
 	for _, results := range report.Results {
 		for _, result := range results {
-			parts := strings.Split(result.Source, ":")
-			if len(parts) < 3 {
+			parts := strings.SplitN(result.Source, ":", 3)
+			if len(parts) != 3 {
 				// TODO handle error? skip? check this
 				continue
 			}
 			// Added:commitID:fileName
 			contentType := parts[0]
 			commitID := parts[1]
-			fileName := strings.Join(parts[2:], ":") // to handle cases where the file name has ":"
+			fileName := parts[2]
 
 			resultCopy := *result
 			resultCopy.Value = obfuscateSecret(result.Value)

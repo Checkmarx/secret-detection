@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	zeroRev = "0000000000000000000000000000000000000000"
+	zeroRev       = "0000000000000000000000000000000000000000"
+	unknownCommit = "unknown"
 )
 
 func Scan() error {
@@ -130,6 +131,7 @@ func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiff
 		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
 		// This scenario is unlikely but may cause the scan to never complete.
 		file.PatchHeader = &gitdiff.PatchHeader{}
+		file.PatchHeader.SHA = unknownCommit
 	}
 
 	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)

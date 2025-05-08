@@ -3,7 +3,7 @@ package pre_receive
 import (
 	"bufio"
 	"fmt"
-	report2 "github.com/Checkmarx/secret-detection/pkg/report"
+	report "github.com/Checkmarx/secret-detection/pkg/report"
 	"github.com/checkmarx/2ms/lib/reporting"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/checkmarx/2ms/plugins"
@@ -21,24 +21,24 @@ const (
 	unknownCommit = "unknown"
 )
 
-func Scan() error {
-	report, fileDiffs, err := runSecretScan()
+func Scan(configPath string) error {
+	scanConfig := loadScanConfig(configPath)
+
+	scanReport, fileDiffs, err := runSecretScan(scanConfig)
 	if err != nil {
 		return fmt.Errorf("failed to run scan: %w", err)
 	}
 
-	if report.TotalSecretsFound > 0 {
-		UpdateResultsStartAndEndLine(report, fileDiffs)
-		report2.PrintReport(report) // TODO update package name to not be "report2"
+	if scanReport.TotalSecretsFound > 0 {
+		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
+		report.PrintReport(scanReport)
 		os.Exit(1)
 	}
 	return nil
 }
 
-func runSecretScan() (*reporting.Report, map[string]*report2.FileInfo, error) {
+func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	// TODO: ignoredIDs, err := getIgnoredResultIds()
 
 	procs := runtime.GOMAXPROCS(0) // TODO update to use it in 2ms, just for testing right now
 
@@ -49,12 +49,12 @@ func runSecretScan() (*reporting.Report, map[string]*report2.FileInfo, error) {
 	errScanCh := make(chan error, 1)
 
 	go func() {
-		report, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{ /* TODO: IgnoreResultIds: ignoredIDs */ })
+		scanReport, err := scanner.ScanDynamic(itemsCh, scanConfig)
 		if err != nil {
 			errScanCh <- err
 			return
 		}
-		reportCh <- report
+		reportCh <- scanReport
 	}()
 
 	fileDiffs, err := runDiffParsing(itemsCh)
@@ -72,8 +72,8 @@ func runSecretScan() (*reporting.Report, map[string]*report2.FileInfo, error) {
 	}
 }
 
-func runDiffParsing(itemsChan chan twoms.ScanItem) (map[string]*report2.FileInfo, error) {
-	fileDiffs := make(map[string]*report2.FileInfo)
+func runDiffParsing(itemsChan chan twoms.ScanItem) (map[string]*report.FileInfo, error) {
+	fileDiffs := make(map[string]*report.FileInfo)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for scanner.Scan() {
@@ -126,7 +126,7 @@ func runDiffParsing(itemsChan chan twoms.ScanItem) (map[string]*report2.FileInfo
 	return fileDiffs, nil
 }
 
-func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiffs map[string]*report2.FileInfo) {
+func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiffs map[string]*report.FileInfo) {
 	if file.PatchHeader == nil {
 		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
 		// This scenario is unlikely but may cause the scan to never complete.
@@ -159,7 +159,7 @@ func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiff
 			ID:      id,
 			Source:  source,
 		}
-		fileDiffs[source] = &report2.FileInfo{File: file, ContentType: plugins.AddedContent}
+		fileDiffs[source] = &report.FileInfo{File: file, ContentType: plugins.AddedContent}
 	}
 
 	if removedChanges != "" {
@@ -169,7 +169,7 @@ func processFileDiff(file *gitdiff.File, itemsChan chan twoms.ScanItem, fileDiff
 			ID:      id,
 			Source:  source,
 		}
-		fileDiffs[source] = &report2.FileInfo{File: file, ContentType: plugins.RemovedContent}
+		fileDiffs[source] = &report.FileInfo{File: file, ContentType: plugins.RemovedContent}
 	}
 }
 
@@ -196,7 +196,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed st
 	return addedBuilder.String(), removedBuilder.String()
 }
 
-func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report2.FileInfo) {
+func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report.FileInfo) {
 	for id, secrets := range report.Results {
 		for secretIndex, secret := range secrets {
 			fileDiff := fileDiffs[secret.Source]
@@ -208,4 +208,11 @@ func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string
 			report.Results[id][secretIndex].EndLine = newEndLine
 		}
 	}
+}
+
+func loadScanConfig(configPath string) twoms.ScanConfig {
+	if configPath != "" {
+		return twoms.ScanConfig{} // TODO
+	}
+	return twoms.ScanConfig{}
 }

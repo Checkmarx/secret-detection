@@ -31,7 +31,7 @@ func Scan(configPath string) error {
 
 	if scanReport.TotalSecretsFound > 0 {
 		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
-		report.PrintReport(scanReport)
+		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
 	return nil

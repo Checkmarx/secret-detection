@@ -1,7 +1,6 @@
 package report
 
 import (
-	"fmt"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
@@ -12,10 +11,10 @@ import (
 )
 
 const (
-	SecretMaxCharacters    = 4
-	ObfuscatedSecretString = "***"
-	BeginPrivateKeyString  = "-----BEGIN"
-	PrivateKeySeparator    = "-----"
+	secretMaxCharacters    = 4
+	obfuscatedSecretString = "***"
+	beginPrivateKeyString  = "-----BEGIN"
+	privateKeySeparator    = "-----"
 	maxDisplayedResults    = 100
 )
 
@@ -34,23 +33,24 @@ type SourceInfo struct {
 	fileName    string
 }
 
-func PrintReport(report *reporting.Report) {
+func PreReceiveReport(report *reporting.Report) string {
 	var sb strings.Builder
 	sb.Grow(512 * len(report.Results)) // avoid multiple reallocations
 
-	secretsByCommitID := getReportResultsByCommitID(report)
+	secretsByCommitID := groupReportResultsByCommitID(report)
 
 	sb.WriteString("\n----- Cx Secret Scanner Report -----\n")
 	sb.WriteString("\nDetected ")
 	sb.WriteString(strconv.Itoa(report.TotalSecretsFound))
-	sb.WriteString(" secrets across ")
+	sb.WriteString(pluralize(report.TotalSecretsFound, " secret", " secrets"))
+	sb.WriteString(" across ")
 	sb.WriteString(strconv.Itoa(len(secretsByCommitID)))
-	sb.WriteString(" commits")
+	sb.WriteString(pluralize(len(secretsByCommitID), " commit", " commits"))
 
 	if report.TotalSecretsFound > maxDisplayedResults {
-		sb.WriteString(" (Presenting first ")
+		sb.WriteString("\n\nPresenting first ")
 		sb.WriteString(strconv.Itoa(maxDisplayedResults))
-		sb.WriteString(" results)")
+		sb.WriteString(" results")
 	}
 
 	sb.WriteString("\n\n")
@@ -67,7 +67,7 @@ func PrintReport(report *reporting.Report) {
 PrintLoop:
 	for _, commitID := range commitIDs {
 		secretsInfo := secretsByCommitID[commitID]
-		secretsByFileName := getSecretsByFileName(secretsInfo)
+		secretsByFileName := groupSecretsByFileName(secretsInfo)
 
 		numberOfSecretsInCommit := len(secretsInfo)
 		numberOfFiles := len(secretsByFileName)
@@ -146,31 +146,31 @@ PrintLoop:
 	sb.WriteString("      2. Ask them to redeploy the pre-receive hook with the updated settings.\n")
 	sb.WriteString("      3. Once the new ignore rules are in place, retry pushing your code.\n\n")
 
-	sb.WriteString("You can setup pre-commit secret scanning to avoid rewriting git history in the future:\n")
+	sb.WriteString("You can set up pre-commit secret scanning to avoid rewriting git history in the future:\n")
 	sb.WriteString(" - https://docs.checkmarx.com/en/34965-364702-pre-commit-secret-scanning.html\n\n")
 
-	fmt.Print(sb.String())
+	return sb.String()
 }
 
 func obfuscateSecret(snippet string) string {
 	truncatedSecret := snippet
 
 	// If the snippet is a private key get the secret part of it
-	if strings.HasPrefix(truncatedSecret, BeginPrivateKeyString) {
+	if strings.HasPrefix(truncatedSecret, beginPrivateKeyString) {
 		// Find the string between the second and third separator
-		truncatedSecret = strings.Split(truncatedSecret, PrivateKeySeparator)[2]
+		truncatedSecret = strings.Split(truncatedSecret, privateKeySeparator)[2]
 		// Remove the first new line character if it exists
 		truncatedSecret = strings.TrimPrefix(truncatedSecret, "\n")
 		truncatedSecret = strings.TrimPrefix(truncatedSecret, "\\n")
 	}
 
-	if len(truncatedSecret) > SecretMaxCharacters {
-		truncatedSecret = truncatedSecret[:SecretMaxCharacters] + ObfuscatedSecretString
+	if len(truncatedSecret) > secretMaxCharacters {
+		truncatedSecret = truncatedSecret[:secretMaxCharacters] + obfuscatedSecretString
 	}
 	return truncatedSecret
 }
 
-func getReportResultsByCommitID(report *reporting.Report) map[string][]*SecretInfo {
+func groupReportResultsByCommitID(report *reporting.Report) map[string][]*SecretInfo {
 	secretsByCommitID := make(map[string][]*SecretInfo)
 
 	for _, results := range report.Results {
@@ -202,7 +202,7 @@ func getReportResultsByCommitID(report *reporting.Report) map[string][]*SecretIn
 	return secretsByCommitID
 }
 
-func getSecretsByFileName(secrets []*SecretInfo) map[string][]*SecretInfo {
+func groupSecretsByFileName(secrets []*SecretInfo) map[string][]*SecretInfo {
 	secretsByFile := make(map[string][]*SecretInfo)
 	for _, secret := range secrets {
 		fileName := secret.source.fileName

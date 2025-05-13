@@ -5,6 +5,7 @@ import (
 	"fmt"
 	report "github.com/Checkmarx/secret-detection/pkg/report"
 	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
@@ -31,6 +32,7 @@ func Scan(configPath string) error {
 
 	if scanReport.TotalSecretsFound > 0 {
 		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
+		scanReport = RemoveDuplicatedResults(scanReport)
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
@@ -208,6 +210,30 @@ func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string
 			report.Results[id][secretIndex].EndLine = newEndLine
 		}
 	}
+}
+
+func RemoveDuplicatedResults(report *reporting.Report) *reporting.Report {
+	seenKeys := make(map[string]struct{})
+	newResults := make(map[string][]*secrets.Secret, len(report.Results))
+
+	for category, list := range report.Results {
+		for _, sec := range list {
+			key := fmt.Sprintf(
+				"%s|%s|%s|%d|%d|%d|%d",
+				sec.ID, sec.Source, sec.RuleID,
+				sec.StartLine, sec.EndLine,
+				sec.StartColumn, sec.EndColumn,
+			)
+			if _, found := seenKeys[key]; !found {
+				seenKeys[key] = struct{}{}
+				newResults[category] = append(newResults[category], sec)
+			}
+		}
+	}
+
+	report.Results = newResults
+	report.TotalSecretsFound = len(seenKeys)
+	return report
 }
 
 func loadScanConfig(configPath string) twoms.ScanConfig {

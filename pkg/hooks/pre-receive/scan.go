@@ -32,7 +32,7 @@ func Scan(configPath string) error {
 
 	if scanReport.TotalSecretsFound > 0 {
 		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
-		scanReport = RemoveDuplicatedResults(scanReport)
+		RemoveDuplicatedResults(scanReport)
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
@@ -212,7 +212,7 @@ func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string
 	}
 }
 
-func RemoveDuplicatedResults(report *reporting.Report) *reporting.Report {
+func RemoveDuplicatedResults(report *reporting.Report) {
 	seenKeys := make(map[string]struct{})
 	newResults := make(map[string][]*secrets.Secret, len(report.Results))
 
@@ -233,7 +233,6 @@ func RemoveDuplicatedResults(report *reporting.Report) *reporting.Report {
 
 	report.Results = newResults
 	report.TotalSecretsFound = len(seenKeys)
-	return report
 }
 
 func loadScanConfig(configPath string) twoms.ScanConfig {

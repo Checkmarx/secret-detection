@@ -2,8 +2,8 @@ package hooks
 
 import (
 	"fmt"
-	. "github.com/Checkmarx/secret-detection/pkg/parser"
-	. "github.com/Checkmarx/secret-detection/pkg/report"
+	"github.com/Checkmarx/secret-detection/pkg/parser"
+	"github.com/Checkmarx/secret-detection/pkg/report"
 	"github.com/checkmarx/2ms/lib/reporting"
 	twoms "github.com/checkmarx/2ms/pkg"
 	"github.com/fatih/color"
@@ -17,20 +17,20 @@ import (
 func Scan() error {
 	color.NoColor = false
 
-	report, fileDiffs, err := runSecretScan()
+	scanReport, fileDiffs, err := runSecretScan()
 	if err != nil {
 		return fmt.Errorf("failed to run scan: %w", err)
 	}
 
-	if report.TotalSecretsFound > 0 {
-		PrintGitDiffReport(report, fileDiffs)
+	if scanReport.TotalSecretsFound > 0 {
+		report.PrintGitDiffReport(scanReport, fileDiffs)
 		os.Exit(1)
 	}
 	return nil
 }
 
 // runSecretScan executes the secret scan workflow.
-func runSecretScan() (*reporting.Report, map[string][]Hunk, error) {
+func runSecretScan() (*reporting.Report, map[string][]parser.Hunk, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	// Execute the diff parsing workflow.
@@ -76,7 +76,7 @@ func runSecretScan() (*reporting.Report, map[string][]Hunk, error) {
 }
 
 // runDiffParsing executes the git diff command and returns the parsed file diffs.
-func runDiffParsing() (map[string][]Hunk, error) {
+func runDiffParsing() (map[string][]parser.Hunk, error) {
 	cmd := exec.Command("git", "diff", "--unified=0", "--staged")
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -85,7 +85,7 @@ func runDiffParsing() (map[string][]Hunk, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start git diff: %w", err)
 	}
-	parser := NewDiffParser()
+	parser := parser.NewDiffParser()
 	if err := parser.ParseDiffStream(pipe); err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func runDiffParsing() (map[string][]Hunk, error) {
 }
 
 // sendDiffContentForScanning sends the concatenated hunk content of a file to the scan channel.
-func sendDiffContentForScanning(file string, hunks []Hunk, items chan<- twoms.ScanItem) {
+func sendDiffContentForScanning(file string, hunks []parser.Hunk, items chan<- twoms.ScanItem) {
 	var builder strings.Builder
 	for _, hunk := range hunks {
 		builder.WriteString(hunk.Content)

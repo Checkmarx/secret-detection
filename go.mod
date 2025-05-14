@@ -7,6 +7,8 @@ require (
 	github.com/fatih/color v1.14.1
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/net v0.38.0
+	golang.org/x/oauth2 v0.27.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -56,7 +58,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace golang.org/x/oauth2 => golang.org/x/oauth2 v0.27.0
-
-replace golang.org/x/net => golang.org/x/net v0.38.0

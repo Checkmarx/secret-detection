@@ -31,13 +31,13 @@ func PrintGitDiffReport(report *reporting.Report, fileDiffs map[string][]parser.
 	totalFiles := len(secretsByFile)
 	totalSecrets := report.TotalSecretsFound
 
-	color.New(color.FgWhite).Printf("Commit scanned for secrets:\n\n")
-	color.New(color.FgWhite).Printf("Detected ")
-	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets"))
-	color.New(color.FgWhite).Printf("in ")
-	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))
+	color.New(color.FgWhite).Printf("Commit scanned for secrets:\n\n")                                  // nolint:errcheck
+	color.New(color.FgWhite).Printf("Detected ")                                                        // nolint:errcheck
+	color.New(color.FgRed).Printf("%d %s ", totalSecrets, pluralize(totalSecrets, "secret", "secrets")) // nolint:errcheck
+	color.New(color.FgWhite).Printf("in ")                                                              // nolint:errcheck
+	color.New(color.FgRed).Printf("%d %s\n\n", totalFiles, pluralize(totalFiles, "file", "files"))      // nolint:errcheck
 	if totalSecrets > maxDisplayedResults {
-		color.New(color.FgWhite).Printf("Presenting first %d results\n\n", maxDisplayedResults)
+		color.New(color.FgWhite).Printf("Presenting first %d results\n\n", maxDisplayedResults) // nolint:errcheck
 	}
 
 	printedSecrets := 0
@@ -54,7 +54,7 @@ resultsLoop:
 		hunks := fileDiffs[file]
 		secretGroups, err := groupSecretsByHunk(hunks, secretsInFile)
 		if err != nil {
-			color.New(color.FgRed).Printf("Error grouping secrets by diff hunk for file %s: %v\n", file, err)
+			color.New(color.FgRed).Printf("Error grouping secrets by diff hunk for file %s: %v\n", file, err) // nolint:errcheck
 			fileIndex++
 			continue
 		}
@@ -70,15 +70,15 @@ resultsLoop:
 				localSecretLine := secret.StartLine - cumulative
 				globalSecretLine := getSecretGlobalStartLine(secret.StartLine, hunks, hunkIndex)
 
-				color.New(color.FgWhite).Println("")
-				color.New(color.FgWhite).Printf("\tSecret detected: ")
-				color.New(color.FgHiYellow).Printf("%s\n", secret.RuleID)
-				color.New(color.FgWhite).Printf("\tResult ID: ")
-				color.New(color.FgHiYellow).Printf("%s\n", secret.ID)
-				color.New(color.FgWhite).Printf("\tRisk Score: ")
-				color.New(color.FgHiYellow).Printf("%.1f\n", secret.CvssScore)
-				color.New(color.FgWhite).Printf("\tLocation: ")
-				color.New(color.FgHiYellow).Printf("Line %d\n", globalSecretLine)
+				color.New(color.FgWhite).Println("")                              // nolint:errcheck
+				color.New(color.FgWhite).Printf("\tSecret detected: ")            // nolint:errcheck
+				color.New(color.FgHiYellow).Printf("%s\n", secret.RuleID)         // nolint:errcheck
+				color.New(color.FgWhite).Printf("\tResult ID: ")                  // nolint:errcheck
+				color.New(color.FgHiYellow).Printf("%s\n", secret.ID)             // nolint:errcheck
+				color.New(color.FgWhite).Printf("\tRisk Score: ")                 // nolint:errcheck
+				color.New(color.FgHiYellow).Printf("%.1f\n", secret.CvssScore)    // nolint:errcheck
+				color.New(color.FgWhite).Printf("\tLocation: ")                   // nolint:errcheck
+				color.New(color.FgHiYellow).Printf("Line %d\n", globalSecretLine) // nolint:errcheck
 
 				secretLinesCount := countSecretLines(secret.Value)
 				startIndex := localSecretLine - contextBefore
@@ -97,7 +97,7 @@ resultsLoop:
 			}
 		}
 		fileIndex++
-		color.New(color.FgWhite).Println("")
+		color.New(color.FgWhite).Println("") // nolint:errcheck
 	}
 
 	printOptions()
@@ -116,10 +116,10 @@ func groupSecretsByFile(results map[string][]*secrets.Secret) map[string][]*secr
 
 // printFileHeader prints the header for each file's report.
 func printFileHeader(fileIndex int, file string, numSecrets int) {
-	color.New(color.FgWhite).Printf("#%d File: ", fileIndex)
-	color.New(color.FgHiYellow).Printf("%s\n", file)
-	color.New(color.FgRed).Printf("%d ", numSecrets)
-	color.New(color.FgWhite).Printf("%s detected in file\n", pluralize(numSecrets, "Secret", "Secrets"))
+	color.New(color.FgWhite).Printf("#%d File: ", fileIndex)                                             // nolint:errcheck
+	color.New(color.FgHiYellow).Printf("%s\n", file)                                                     // nolint:errcheck
+	color.New(color.FgRed).Printf("%d ", numSecrets)                                                     // nolint:errcheck
+	color.New(color.FgWhite).Printf("%s detected in file\n", pluralize(numSecrets, "Secret", "Secrets")) // nolint:errcheck
 }
 
 // sortedKeys returns sorted keys of a map.
@@ -134,35 +134,35 @@ func sortedKeys(m map[int][]*secrets.Secret) []int {
 
 // printOptions prints available options for the commit.
 func printOptions() {
-	color.New(color.FgWhite).Printf("Options for proceeding with the commit:\n\n")
-	color.New(color.FgWhite).Printf("  - Remediate detected secrets using the following workflow (")
-	color.New(color.FgGreen).Printf("recommended")
-	color.New(color.FgWhite).Printf("):\n")
-	color.New(color.FgWhite).Printf("      1. Remove detected secrets from files and store them securely. Options:\n")
-	color.New(color.FgWhite).Printf("         - Use environmental variables\n")
-	color.New(color.FgWhite).Printf("         - Use a secret management service\n")
-	color.New(color.FgWhite).Printf("         - Use a configuration management tool\n")
-	color.New(color.FgWhite).Printf("         - Encrypt files containing secrets (least secure method)\n")
-	color.New(color.FgWhite).Printf("      2. Commit fixed code.\n\n")
+	color.New(color.FgWhite).Printf("Options for proceeding with the commit:\n\n")                                     // nolint:errcheck
+	color.New(color.FgWhite).Printf("  - Remediate detected secrets using the following workflow (")                   // nolint:errcheck
+	color.New(color.FgGreen).Printf("recommended")                                                                     // nolint:errcheck
+	color.New(color.FgWhite).Printf("):\n")                                                                            // nolint:errcheck
+	color.New(color.FgWhite).Printf("      1. Remove detected secrets from files and store them securely. Options:\n") // nolint:errcheck
+	color.New(color.FgWhite).Printf("         - Use environmental variables\n")                                        // nolint:errcheck
+	color.New(color.FgWhite).Printf("         - Use a secret management service\n")                                    // nolint:errcheck
+	color.New(color.FgWhite).Printf("         - Use a configuration management tool\n")                                // nolint:errcheck
+	color.New(color.FgWhite).Printf("         - Encrypt files containing secrets (least secure method)\n")             // nolint:errcheck
+	color.New(color.FgWhite).Printf("      2. Commit fixed code.\n\n")                                                 // nolint:errcheck
 
-	color.New(color.FgWhite).Printf("  - Ignore detected secrets (")
-	color.New(color.FgYellow).Printf("not recommended")
-	color.New(color.FgWhite).Printf("):\n")
-	color.New(color.FgWhite).Printf("      Use one of the following commands:\n")
-	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --all\n")
-	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultIds=id1,id2\n\n")
+	color.New(color.FgWhite).Printf("  - Ignore detected secrets (")                                        // nolint:errcheck
+	color.New(color.FgYellow).Printf("not recommended")                                                     // nolint:errcheck
+	color.New(color.FgWhite).Printf("):\n")                                                                 // nolint:errcheck
+	color.New(color.FgWhite).Printf("      Use one of the following commands:\n")                           // nolint:errcheck
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --all\n")                 // nolint:errcheck
+	color.New(color.FgHiBlue).Print("          cx hooks pre-commit secrets-ignore --resultIds=id1,id2\n\n") // nolint:errcheck
 
-	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")
-	color.New(color.FgRed).Printf("not recommended")
-	color.New(color.FgWhite).Printf("):\n")
-	color.New(color.FgWhite).Printf("      Use one of the following commands based on your OS:\n\n")
-	color.New(color.FgWhite).Printf("        Bash/Zsh:\n")
-	color.New(color.FgHiBlue).Printf("          SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")
-	color.New(color.FgWhite).Printf("        Windows CMD:\n")
-	color.New(color.FgHiBlue).Printf("          set SKIP=cx-secret-detection && git commit -m \"<your message>\"\n\n")
-	color.New(color.FgWhite).Printf("        PowerShell:\n")
-	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"\n")
-	color.New(color.FgHiBlue).Printf("          git commit -m \"<your message>\"\n")
+	color.New(color.FgWhite).Printf("  - Bypass the pre-commit secret detection scanner (")                            // nolint:errcheck
+	color.New(color.FgRed).Printf("not recommended")                                                                   // nolint:errcheck
+	color.New(color.FgWhite).Printf("):\n")                                                                            // nolint:errcheck
+	color.New(color.FgWhite).Printf("      Use one of the following commands based on your OS:\n\n")                   // nolint:errcheck
+	color.New(color.FgWhite).Printf("        Bash/Zsh:\n")                                                             // nolint:errcheck
+	color.New(color.FgHiBlue).Printf("          SKIP=cx-secret-detection git commit -m \"<your message>\"\n\n")        // nolint:errcheck
+	color.New(color.FgWhite).Printf("        Windows CMD:\n")                                                          // nolint:errcheck
+	color.New(color.FgHiBlue).Printf("          set SKIP=cx-secret-detection && git commit -m \"<your message>\"\n\n") // nolint:errcheck
+	color.New(color.FgWhite).Printf("        PowerShell:\n")                                                           // nolint:errcheck
+	color.New(color.FgHiBlue).Printf("          $env:SKIP=\"cx-secret-detection\"\n")                                  // nolint:errcheck
+	color.New(color.FgHiBlue).Printf("          git commit -m \"<your message>\"\n")                                   // nolint:errcheck
 }
 
 func pluralize(count int, singular, plural string) string {

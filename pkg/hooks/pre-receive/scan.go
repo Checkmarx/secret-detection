@@ -36,6 +36,7 @@ func Scan(configPath string) error {
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
+	fmt.Print("No secrets detected by Cx Secret Scanner")
 	return nil
 }
 

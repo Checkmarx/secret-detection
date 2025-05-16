@@ -303,21 +303,21 @@ func setupPreReceiveTmpDir(t *testing.T) (workDir string, cleanup func()) {
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
 
-	// 1) Init bare repo in a 'server' subdir
+	// Init bare repo in a 'server' subdir
 	serverDir := filepath.Join(tmpDir, "server")
 	err = exec.Command("git", "init", "--bare", serverDir).Run()
 	assert.NoError(t, err)
 
-	// 2) cd into the bare repo, enable push-options, then cd back
+	// cd into the bare repo, enable push-options, then cd back
 	err = os.Chdir(serverDir)
 	assert.NoError(t, err)
 	err = exec.Command("git", "config", "receive.advertisePushOptions", "true").Run()
 	assert.NoError(t, err)
-	// return to original dir so our clone paths still work
+	// return to original dir
 	err = os.Chdir(origWD)
 	assert.NoError(t, err)
 
-	// 3) Write a basic pre-receive hook (no push-option parsing here)
+	// Write pre-receive hook
 	hooksDir := filepath.Join(serverDir, "hooks")
 	preReceivePath := filepath.Join(hooksDir, "pre-receive")
 	hookContent := []byte(`#!/bin/sh
@@ -326,17 +326,17 @@ exec cx hooks pre-receive secrets-scan "$@"
 	err = os.WriteFile(preReceivePath, hookContent, 0755)
 	assert.NoError(t, err)
 
-	// 4) Clone the bare repository into 'client'
+	// Clone the bare repository into 'client'
 	clientDir := filepath.Join(tmpDir, "client")
 	err = exec.Command("git", "clone", serverDir, clientDir).Run()
 	assert.NoError(t, err)
 
-	// 5) cd into the client working directory
+	// cd into the client working directory
 	workDir = clientDir
 	err = os.Chdir(workDir)
 	assert.NoError(t, err)
 
-	// 6) Configure dummy user details
+	// Configure dummy user details
 	if out, err := exec.Command("git", "config", "user.email", "dummy@example.com").CombinedOutput(); err != nil {
 		t.Fatalf("failed to set user.email: %v – %s", err, out)
 	}
@@ -344,7 +344,7 @@ exec cx hooks pre-receive secrets-scan "$@"
 		t.Fatalf("failed to set user.name: %v – %s", err, out)
 	}
 
-	// cleanup restores your original working directory
+	// cleanup restores original working directory
 	cleanup = func() {
 		_ = os.Chdir(origWD)
 	}

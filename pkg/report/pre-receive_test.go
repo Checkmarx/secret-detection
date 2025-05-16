@@ -11,6 +11,12 @@ import (
 	"testing"
 )
 
+const (
+	exceedsMaxDisplayedResultsSource     = "testdata/fixtures/exceeds_max_displayed_results.txt"
+	multipleFilesCommitsAndSecretsSource = "testdata/fixtures/multiple_files_commits_and_secrets.txt"
+	singleFileCommitAndSecretSource      = "testdata/fixtures/single_file_commit_and_secret.txt"
+)
+
 // makeReport generates a reporting.Report containing exactly totalSecrets dummy
 // secrets, evenly distributed across numFiles files and numCommits commits.
 // Each secret is assigned its own unique resultID and pseudo-random metadata,
@@ -339,21 +345,21 @@ func TestPreReceiveReport(t *testing.T) {
 			totalSecrets: 1,
 			numFiles:     1,
 			numCommits:   1,
-			expectedFile: "testdata/fixtures/single_file_commit_and_secret.txt",
+			expectedFile: singleFileCommitAndSecretSource,
 		},
 		{
 			name:         "multiple files and commits",
 			totalSecrets: 8,
 			numFiles:     4,
 			numCommits:   2,
-			expectedFile: "testdata/fixtures/multiple_files_commits_and_secrets.txt",
+			expectedFile: multipleFilesCommitsAndSecretsSource,
 		},
 		{
 			name:         "exceeds maxDisplayedResults",
 			totalSecrets: 150,
 			numFiles:     10,
 			numCommits:   4,
-			expectedFile: "testdata/fixtures/exceeds_max_displayed_results.txt",
+			expectedFile: exceedsMaxDisplayedResultsSource,
 		},
 	}
 

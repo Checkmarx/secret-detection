@@ -14,15 +14,23 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
 const (
-	zeroRev       = "0000000000000000000000000000000000000000"
-	unknownCommit = "unknown"
+	zeroRev             = "0000000000000000000000000000000000000000"
+	unknownCommit       = "unknown"
+	gitPushOptionPrefix = "GIT_PUSH_OPTION_"
+	gitPushOptionCount  = "GIT_PUSH_OPTION_COUNT"
+	skipScanKeyword     = "skip-secret-scanner"
 )
 
 func Scan(configPath string) error {
+	if skipScan() {
+		fmt.Print("Cx Secret Scanner bypassed")
+		return nil
+	}
 	scanConfig := loadScanConfig(configPath)
 
 	scanReport, fileDiffs, err := runSecretScan(scanConfig)
@@ -32,7 +40,7 @@ func Scan(configPath string) error {
 
 	if scanReport.TotalSecretsFound > 0 {
 		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
-		RemoveDuplicatedResults(scanReport)
+		RemoveDuplicateResults(scanReport)
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
@@ -213,7 +221,7 @@ func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string
 	}
 }
 
-func RemoveDuplicatedResults(report *reporting.Report) {
+func RemoveDuplicateResults(report *reporting.Report) {
 	seenKeys := make(map[string]struct{})
 	newResults := make(map[string][]*secrets.Secret, len(report.Results))
 
@@ -241,4 +249,31 @@ func loadScanConfig(configPath string) twoms.ScanConfig {
 		return twoms.ScanConfig{} // TODO
 	}
 	return twoms.ScanConfig{}
+}
+
+// skipScan returns true if the special "skip-secrets" push-option is present.
+func skipScan() bool {
+	// Read how many push-options were sent
+	countStr := os.Getenv(gitPushOptionCount)
+	if countStr == "" {
+		// No push-options supported or none sent
+		return false
+	}
+
+	count, err := strconv.Atoi(countStr)
+	if err != nil || count == 0 {
+		// Invalid count or zero options
+		return false
+	}
+
+	// Inspect each push-option
+	for i := 0; i < count; i++ {
+		key := gitPushOptionPrefix + strconv.Itoa(i)
+		val := os.Getenv(key)
+		if val == skipScanKeyword {
+			return true
+		}
+	}
+
+	return false
 }

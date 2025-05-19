@@ -5,7 +5,7 @@ go 1.23.8
 require (
 	github.com/checkmarx/2ms v1.4.1-0.20250327145719-b78804cb08c7
 	github.com/fatih/color v1.14.1
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.27.0

@@ -295,21 +295,3 @@ func skipScan() bool {
 
 	return false
 }
-
-func configExcludesToGitExcludes(patterns []string) []string {
-	var specs []string
-	for _, pattern := range patterns {
-		// Trim spaces and surrounding quotes
-		p := strings.Trim(strings.TrimSpace(pattern), `"`)
-		if p == "" {
-			continue
-		}
-		// Normalize Windows backslashes to forward slashes
-		p = strings.ReplaceAll(p, `\`, "/")
-		// Strip any leading slashes
-		p = strings.TrimLeft(p, "/")
-		// Wrap in Git negative pathspec
-		specs = append(specs, fmt.Sprintf(`:(exclude)%s`, p))
-	}
-	return specs
-}

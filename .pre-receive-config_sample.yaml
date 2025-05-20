@@ -1,0 +1,12 @@
+max_commits: 50
+exclude_path:
+  - "docs/"
+  - "*.md"
+ignore_secrets:
+  ignore_rule:
+    - "AWS_KEY"
+    - "GCP_SECRET"
+  ignore_score: 20
+  ignore_severity: "medium"
+  ignore_secret:
+    - "PLACEHOLDER_SECRET"

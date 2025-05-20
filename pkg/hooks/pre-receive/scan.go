@@ -40,7 +40,7 @@ func Scan(configPath string) error {
 	return nil
 }
 
-func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
+func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	procs := runtime.GOMAXPROCS(0) // TODO update to use it in 2ms, just for testing right now
@@ -52,7 +52,7 @@ func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*
 	errScanCh := make(chan error, 1)
 
 	go func() {
-		scanReport, err := scanner.ScanDynamic(itemsCh, scanConfig)
+		scanReport, err := scanner.ScanDynamic(itemsCh, scanConfig.IgnoreSecrets)
 		if err != nil {
 			errScanCh <- err
 			return
@@ -236,9 +236,19 @@ func RemoveDuplicatedResults(report *reporting.Report) {
 	report.TotalSecretsFound = len(seenKeys)
 }
 
-func loadScanConfig(configPath string) twoms.ScanConfig {
+func loadScanConfig(configPath string) PreReceiveConfig {
+	var cfg PreReceiveConfig
 	if configPath != "" {
-		return twoms.ScanConfig{} // TODO
+		cfg = LoadPreReceiveConfig(configPath)
+	} else {
+		cfg = defaultConfig
 	}
-	return twoms.ScanConfig{}
+	return PreReceiveConfig{
+		MaxCommits:     cfg.MaxCommits,
+		ExcludePaths:   cfg.ExcludePath,
+		IgnoreRules:    cfg.IgnoreSecrets.IgnoreRule,
+		IgnoreScore:    cfg.IgnoreSecrets.IgnoreScore,
+		IgnoreSeverity: cfg.IgnoreSecrets.IgnoreSeverity,
+		IgnoreSecrets:  cfg.IgnoreSecrets.IgnoreSecret,
+	}
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -37,7 +36,10 @@ func Scan(configPath string) error {
 		fmt.Print("Cx Secret Scanner bypassed")
 		return nil
 	}
-	scanConfig := loadScanConfig(configPath)
+	scanConfig, err := loadScanConfig(configPath)
+	if err != nil {
+		return err
+	}
 
 	scanReport, fileDiffs, err := runSecretScan(scanConfig)
 	if err != nil {
@@ -60,11 +62,9 @@ func Scan(configPath string) error {
 func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-	procs := runtime.GOMAXPROCS(0) // TODO update to use it in 2ms, just for testing right now
-
 	// Create the scanner.
 	scanner := twoms.NewScanner()
-	itemsCh := make(chan twoms.ScanItem, procs)
+	itemsCh := make(chan twoms.ScanItem)
 	reportCh := make(chan *reporting.Report)
 	errScanCh := make(chan error, 1)
 
@@ -312,17 +312,4 @@ func configExcludesToGitExcludes(patterns []string) []string {
 		specs = append(specs, fmt.Sprintf(`:(exclude)%s`, p))
 	}
 	return specs
-}
-
-func loadScanConfig(configPath string) PreReceiveConfig {
-	var cfg PreReceiveConfig
-	if configPath != "" {
-		cfg = LoadPreReceiveConfig(configPath)
-	} else {
-		cfg = defaultConfig
-	}
-	return PreReceiveConfig{
-		ExcludePath:   cfg.ExcludePath,
-		IgnoreSecrets: cfg.IgnoreSecrets,
-	}
 }

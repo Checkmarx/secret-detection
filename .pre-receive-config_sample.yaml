@@ -1,12 +1,9 @@
-max_commits: 50
 exclude_path:
-  - "docs/"
+  - "docs/*"
+  - "internal/tests/*"
   - "*.md"
 ignore_secrets:
   ignore_rule:
-    - "AWS_KEY"
-    - "GCP_SECRET"
-  ignore_score: 20
-  ignore_severity: "medium"
-  ignore_secret:
-    - "PLACEHOLDER_SECRET"
+    - "github-pat"
+  ignore_result_id:
+    - "6981a34c1d94db7b5465fbc8b8f4fb97c2c97426"

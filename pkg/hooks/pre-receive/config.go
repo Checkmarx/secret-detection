@@ -7,39 +7,29 @@ import (
 )
 
 type IgnoreSecrets struct {
-	IgnoreRule     []string `yaml:"ignore_rule"`
-	IgnoreScore    int      `yaml:"ignore_score"`
-	IgnoreSeverity string   `yaml:"ignore_severity"`
-	IgnoreSecret   []string `yaml:"ignore_secret"`
+	IgnoreRule   []string `yaml:"ignore_rule"`
+	IgnoreSecret []string `yaml:"ignore_result_id"`
 }
 
 type PreReceiveConfig struct {
-	MaxCommits    int           `yaml:"max_commits"`
 	ExcludePath   []string      `yaml:"exclude_path"`
 	IgnoreSecrets IgnoreSecrets `yaml:"ignore_secrets"`
 }
 
-var defaultConfig = PreReceiveConfig{
-	MaxCommits:  50,
-	ExcludePath: []string{},
-	IgnoreSecrets: IgnoreSecrets{
-		IgnoreRule:     []string{},
-		IgnoreScore:    0,
-		IgnoreSeverity: "",
-		IgnoreSecret:   []string{},
-	},
-}
-
-func LoadPreReceiveConfig(path string) PreReceiveConfig {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("Warning: No config file found. Using defaults: %v\n", err)
-		return defaultConfig
-	}
+func loadScanConfig(configPath string) (PreReceiveConfig, error) {
 	var cfg PreReceiveConfig
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		fmt.Printf("Warning: Config file misconfigured. Using defaults: %v\n", err)
-		return defaultConfig
+	if configPath != "" {
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			return PreReceiveConfig{}, fmt.Errorf("could not find config file at %s", configPath)
+		}
+
+		if err = yaml.Unmarshal(data, &cfg); err != nil {
+			return PreReceiveConfig{}, fmt.Errorf("configuration file is misconfigured")
+		}
 	}
-	return cfg
+	return PreReceiveConfig{
+		ExcludePath:   cfg.ExcludePath,
+		IgnoreSecrets: cfg.IgnoreSecrets,
+	}, nil
 }

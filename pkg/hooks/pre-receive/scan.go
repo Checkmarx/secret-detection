@@ -57,7 +57,7 @@ func Scan(configPath string) error {
 	return nil
 }
 
-func runSecretScan(scanConfig ScanConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
+func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	procs := runtime.GOMAXPROCS(0) // TODO update to use it in 2ms, just for testing right now
@@ -70,8 +70,8 @@ func runSecretScan(scanConfig ScanConfig) (*reporting.Report, map[string]*report
 
 	go func() {
 		scanReport, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{
-			IgnoreResultIds: scanConfig.ignoreResultIds,
-			IgnoreRules:     scanConfig.ignoreRules,
+			IgnoreResultIds: scanConfig.IgnoreSecrets.IgnoreSecret,
+			IgnoreRules:     scanConfig.IgnoreSecrets.IgnoreRule,
 		})
 		if err != nil {
 			errScanCh <- err
@@ -95,11 +95,11 @@ func runSecretScan(scanConfig ScanConfig) (*reporting.Report, map[string]*report
 	}
 }
 
-func runDiffParsing(itemsChan chan twoms.ScanItem, config ScanConfig) (map[string]*report.FileInfo, error) {
+func runDiffParsing(itemsChan chan twoms.ScanItem, config PreReceiveConfig) (map[string]*report.FileInfo, error) {
 	fileDiffs := make(map[string]*report.FileInfo)
 	scanner := bufio.NewScanner(os.Stdin)
 
-	fileExclusion := configExcludesToGitExcludes(config.pathExclusion)
+	fileExclusion := configExcludesToGitExcludes(config.ExcludePath)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -269,13 +269,6 @@ func RemoveDuplicateResults(report *reporting.Report) {
 	report.TotalSecretsFound = len(seenKeys)
 }
 
-func loadScanConfig(configPath string) ScanConfig {
-	if configPath != "" {
-		return ScanConfig{}
-	}
-	return ScanConfig{}
-}
-
 // skipScan returns true if the special "skip-secrets" push-option is present.
 func skipScan() bool {
 	// Read how many push-options were sent
@@ -319,4 +312,17 @@ func configExcludesToGitExcludes(patterns []string) []string {
 		specs = append(specs, fmt.Sprintf(`:(exclude)%s`, p))
 	}
 	return specs
+}
+
+func loadScanConfig(configPath string) PreReceiveConfig {
+	var cfg PreReceiveConfig
+	if configPath != "" {
+		cfg = LoadPreReceiveConfig(configPath)
+	} else {
+		cfg = defaultConfig
+	}
+	return PreReceiveConfig{
+		ExcludePath:   cfg.ExcludePath,
+		IgnoreSecrets: cfg.IgnoreSecrets,
+	}
 }

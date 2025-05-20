@@ -146,6 +146,12 @@ PrintLoop:
 	sb.WriteString("      2. Ask them to redeploy the pre-receive hook with the updated settings.\n")
 	sb.WriteString("      3. Once the new ignore rules are in place, retry pushing your code.\n\n")
 
+	sb.WriteString("  - Bypass the secret scanner:\n")
+	sb.WriteString("      1. Run `git push -o skip-secret-scanner`\n")
+	sb.WriteString("      2. If that fails, ensure the remote repository has push-options enabled\n")
+	sb.WriteString("      3. On the server side (in the remote repository), have your administrator run:\n")
+	sb.WriteString("         `git config receive.advertisePushOptions true`\n\n")
+
 	sb.WriteString("You can set up pre-commit secret scanning to avoid rewriting git history in the future:\n")
 	sb.WriteString(" - https://docs.checkmarx.com/en/34965-364702-pre-commit-secret-scanning.html\n\n")
 

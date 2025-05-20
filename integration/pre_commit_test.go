@@ -579,11 +579,11 @@ func TestPreCommitIgnore(t *testing.T) {
 		assert.NoError(t, err)
 		lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 		expectedShas := []string{
-			"834a259ed3b76c6276d7e342a4018d3743b2926a",
-			"250ab70ec2ffe57984fb72ad38e3d110429e99ef",
-			"f4b68dd7bf7f3bf38ec1406f2c2efed37b109128",
-			"d24005fcacdda80096118e33d082beff84f60041",
-			"41a69f393a8cfc79d1ae072d545790967f057b2b",
+			"2b1acd6a2dbeb52e1c4bc3d0d25716b291613e9b",
+			"1dc983199b78d54a4f5050fd9f97421de737341a",
+			"f8c37c1e63a0f3f4c367fedb5d7e9a01d481b208",
+			"8f6b4f54b04994b9fde5b20258e6b1c154f8c532",
+			"0093716c4cd7a12d960d7077fe35ffbc1aab37a7",
 		}
 		assert.ElementsMatch(t, expectedShas, lines, "ignore file does not contain all expected shas")
 	})
@@ -755,7 +755,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			red("1 ") + white("Secret detected in file\n") +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("private-key\n") +
-			white("\tResult ID: ") + hiYellow("6690f3400f0b2445c71b44f9fa89308e35f7c822\n") +
+			white("\tResult ID: ") + hiYellow("f217436243aaf56e0943776550ab0da01a343930\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 6\n") +
 			"\t           4 | MOCK CONTENT 4\n" +
@@ -776,7 +776,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			red("4 ") + white("Secrets detected in file\n") +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("jwt\n") +
-			white("\tResult ID: ") + hiYellow("15db03900061beb413097e4e689b15d36efbb99b\n") +
+			white("\tResult ID: ") + hiYellow("4c6a8955f1c184af48c001764017be59acbd2610\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 2\n") +
 			"\t           1 | SECRETS WITH DIFFERENT VALUE\n" +
@@ -785,7 +785,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           4 | SECRETS WITH THE SAME VALUE\n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("authenticated-url\n") +
-			white("\tResult ID: ") + hiYellow("f4dc5a5fd23a6308314898cb0af125e6423c213e\n") +
+			white("\tResult ID: ") + hiYellow("4df55fe156f8abde62be7cba8841c74a0eb5c1b0\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 2\n") +
 			"\t           1 | SECRETS WITH DIFFERENT VALUE\n" +
@@ -794,7 +794,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           4 | SECRETS WITH THE SAME VALUE\n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("github-pat\n") +
-			white("\tResult ID: ") + hiYellow("3b20d93240ebbe2566fd39a2fd7b456784502658\n") +
+			white("\tResult ID: ") + hiYellow("ef4423c16ddaf8cb9222dd5de1751c26a2bfa962\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 5\n") +
 			"\t           3 | \n" +
@@ -803,7 +803,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           6 | \n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("github-pat\n") +
-			white("\tResult ID: ") + hiYellow("3b20d93240ebbe2566fd39a2fd7b456784502658\n") +
+			white("\tResult ID: ") + hiYellow("ef4423c16ddaf8cb9222dd5de1751c26a2bfa962\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 5\n") +
 			"\t           3 | \n" +
@@ -951,7 +951,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			red("1 ") + white("Secret detected in file\n") +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("private-key\n") +
-			white("\tResult ID: ") + hiYellow("6690f3400f0b2445c71b44f9fa89308e35f7c822\n") +
+			white("\tResult ID: ") + hiYellow("f217436243aaf56e0943776550ab0da01a343930\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 6\n") +
 			"\t           4 | MOCK CONTENT 4\n" +
@@ -972,7 +972,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			red("4 ") + white("Secrets detected in file\n") +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("jwt\n") +
-			white("\tResult ID: ") + hiYellow("15db03900061beb413097e4e689b15d36efbb99b\n") +
+			white("\tResult ID: ") + hiYellow("4c6a8955f1c184af48c001764017be59acbd2610\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 2\n") +
 			"\t           1 | SECRETS WITH DIFFERENT VALUE\n" +
@@ -981,7 +981,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           4 | SECRETS WITH THE SAME VALUE\n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("authenticated-url\n") +
-			white("\tResult ID: ") + hiYellow("f4dc5a5fd23a6308314898cb0af125e6423c213e\n") +
+			white("\tResult ID: ") + hiYellow("4df55fe156f8abde62be7cba8841c74a0eb5c1b0\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 2\n") +
 			"\t           1 | SECRETS WITH DIFFERENT VALUE\n" +
@@ -990,7 +990,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           4 | SECRETS WITH THE SAME VALUE\n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("github-pat\n") +
-			white("\tResult ID: ") + hiYellow("3b20d93240ebbe2566fd39a2fd7b456784502658\n") +
+			white("\tResult ID: ") + hiYellow("ef4423c16ddaf8cb9222dd5de1751c26a2bfa962\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 5\n") +
 			"\t           3 | \n" +
@@ -999,7 +999,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 			"\t           6 | \n" +
 			white("") + "\n" +
 			white("\tSecret detected: ") + hiYellow("github-pat\n") +
-			white("\tResult ID: ") + hiYellow("3b20d93240ebbe2566fd39a2fd7b456784502658\n") +
+			white("\tResult ID: ") + hiYellow("ef4423c16ddaf8cb9222dd5de1751c26a2bfa962\n") +
 			white("\tRisk Score: ") + hiYellow("8.2\n") +
 			white("\tLocation: ") + hiYellow("Line 5\n") +
 			"\t           3 | \n" +
@@ -1114,7 +1114,7 @@ ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		expectedTotalHeader := white("Detected ") + red("500 secrets ") + white("in ") + red("1 file\n\n")
 		assert.Contains(t, string(output), expectedTotalHeader)
 		assert.Contains(t, string(output), "Presenting first 100 results")
-		assert.Equal(t, 100, strings.Count(string(output), "90ee853fb7bf125b6a42c7f4c8d8fcd7f9e8cfb5"))
+		assert.Equal(t, 100, strings.Count(string(output), "969c3a74fce0999f1d0d01f43da4e0b5df9cccac"))
 	})
 }
 

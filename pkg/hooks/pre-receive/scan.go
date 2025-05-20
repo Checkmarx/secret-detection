@@ -3,7 +3,7 @@ package pre_receive
 import (
 	"bufio"
 	"fmt"
-	report "github.com/Checkmarx/secret-detection/pkg/report"
+	"github.com/Checkmarx/secret-detection/pkg/report"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	twoms "github.com/checkmarx/2ms/pkg"
@@ -14,15 +14,29 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
+type ScanConfig struct {
+	ignoreResultIds []string
+	ignoreRules     []string
+	pathExclusion   []string
+}
+
 const (
-	zeroRev       = "0000000000000000000000000000000000000000"
-	unknownCommit = "unknown"
+	zeroRev             = "0000000000000000000000000000000000000000"
+	unknownCommit       = "unknown"
+	gitPushOptionPrefix = "GIT_PUSH_OPTION_"
+	gitPushOptionCount  = "GIT_PUSH_OPTION_COUNT"
+	skipScanKeyword     = "skip-secret-scanner"
 )
 
 func Scan(configPath string) error {
+	if skipScan() {
+		fmt.Print("Cx Secret Scanner bypassed")
+		return nil
+	}
 	scanConfig := loadScanConfig(configPath)
 
 	scanReport, fileDiffs, err := runSecretScan(scanConfig)
@@ -31,8 +45,11 @@ func Scan(configPath string) error {
 	}
 
 	if scanReport.TotalSecretsFound > 0 {
-		UpdateResultsStartAndEndLine(scanReport, fileDiffs)
-		RemoveDuplicatedResults(scanReport)
+		err = UpdateResultsStartAndEndLine(scanReport, fileDiffs)
+		if err != nil {
+			return err
+		}
+		RemoveDuplicateResults(scanReport)
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
@@ -40,7 +57,7 @@ func Scan(configPath string) error {
 	return nil
 }
 
-func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
+func runSecretScan(scanConfig ScanConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	procs := runtime.GOMAXPROCS(0) // TODO update to use it in 2ms, just for testing right now
@@ -52,7 +69,10 @@ func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*
 	errScanCh := make(chan error, 1)
 
 	go func() {
-		scanReport, err := scanner.ScanDynamic(itemsCh, scanConfig)
+		scanReport, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{
+			IgnoreResultIds: scanConfig.ignoreResultIds,
+			IgnoreRules:     scanConfig.ignoreRules,
+		})
 		if err != nil {
 			errScanCh <- err
 			return
@@ -60,7 +80,7 @@ func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*
 		reportCh <- scanReport
 	}()
 
-	fileDiffs, err := runDiffParsing(itemsCh)
+	fileDiffs, err := runDiffParsing(itemsCh, scanConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,9 +95,11 @@ func runSecretScan(scanConfig twoms.ScanConfig) (*reporting.Report, map[string]*
 	}
 }
 
-func runDiffParsing(itemsChan chan twoms.ScanItem) (map[string]*report.FileInfo, error) {
+func runDiffParsing(itemsChan chan twoms.ScanItem, config ScanConfig) (map[string]*report.FileInfo, error) {
 	fileDiffs := make(map[string]*report.FileInfo)
 	scanner := bufio.NewScanner(os.Stdin)
+
+	fileExclusion := configExcludesToGitExcludes(config.pathExclusion)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -89,17 +111,24 @@ func runDiffParsing(itemsChan chan twoms.ScanItem) (map[string]*report.FileInfo,
 		oldRev, newRev, refName := parts[0], parts[1], parts[2]
 
 		var diffCmd *exec.Cmd
+		var args []string
 		switch {
 		case oldRev == zeroRev && newRev != zeroRev:
 			// New ref — show the patch for the root commit.
-			diffCmd = exec.Command("git", "log", "-p", "--root", newRev)
+			args = []string{"log", "-p", "--root", newRev}
 		case newRev == zeroRev:
-			// Ref deletion.
+			// Ref deletion — nothing to diff.
 			continue
 		default:
-			// Normal update: show commit logs with patches between the old and new revisions.
-			diffCmd = exec.Command("git", "log", "-p", fmt.Sprintf("%s..%s", oldRev, newRev))
+			// Normal update: diffs between old and new revisions.
+			args = []string{"log", "-p", fmt.Sprintf("%s..%s", oldRev, newRev)}
 		}
+
+		// Add pathspec separator and exclusions
+		args = append(args, "--", ".")
+		args = append(args, fileExclusion...)
+
+		diffCmd = exec.Command("git", args...)
 
 		// Get the stdout pipe to parse the log output.
 		pipe, err := diffCmd.StdoutPipe()
@@ -199,21 +228,25 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed st
 	return addedBuilder.String(), removedBuilder.String()
 }
 
-func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report.FileInfo) {
+func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report.FileInfo) error {
 	for id, secrets := range report.Results {
 		for secretIndex, secret := range secrets {
 			fileDiff := fileDiffs[secret.Source]
-			newStartLine, newEndLine := plugins.GetGitStartAndEndLine(&plugins.GitInfo{
+			newStartLine, newEndLine, err := plugins.GetGitStartAndEndLine(&plugins.GitInfo{
 				Hunks:       fileDiff.File.TextFragments,
 				ContentType: fileDiff.ContentType,
 			}, secret.StartLine, secret.EndLine)
+			if err != nil {
+				return err
+			}
 			report.Results[id][secretIndex].StartLine = newStartLine
 			report.Results[id][secretIndex].EndLine = newEndLine
 		}
 	}
+	return nil
 }
 
-func RemoveDuplicatedResults(report *reporting.Report) {
+func RemoveDuplicateResults(report *reporting.Report) {
 	seenKeys := make(map[string]struct{})
 	newResults := make(map[string][]*secrets.Secret, len(report.Results))
 
@@ -236,9 +269,54 @@ func RemoveDuplicatedResults(report *reporting.Report) {
 	report.TotalSecretsFound = len(seenKeys)
 }
 
-func loadScanConfig(configPath string) twoms.ScanConfig {
+func loadScanConfig(configPath string) ScanConfig {
 	if configPath != "" {
-		return twoms.ScanConfig{} // TODO
+		return ScanConfig{}
 	}
-	return twoms.ScanConfig{}
+	return ScanConfig{}
+}
+
+// skipScan returns true if the special "skip-secrets" push-option is present.
+func skipScan() bool {
+	// Read how many push-options were sent
+	countStr := os.Getenv(gitPushOptionCount)
+	if countStr == "" {
+		// No push-options supported or none sent
+		return false
+	}
+
+	count, err := strconv.Atoi(countStr)
+	if err != nil || count == 0 {
+		// Invalid count or zero options
+		return false
+	}
+
+	// Inspect each push-option
+	for i := 0; i < count; i++ {
+		key := gitPushOptionPrefix + strconv.Itoa(i)
+		val := os.Getenv(key)
+		if val == skipScanKeyword {
+			return true
+		}
+	}
+
+	return false
+}
+
+func configExcludesToGitExcludes(patterns []string) []string {
+	var specs []string
+	for _, pattern := range patterns {
+		// Trim spaces and surrounding quotes
+		p := strings.Trim(strings.TrimSpace(pattern), `"`)
+		if p == "" {
+			continue
+		}
+		// Normalize Windows backslashes to forward slashes
+		p = strings.ReplaceAll(p, `\`, "/")
+		// Strip any leading slashes
+		p = strings.TrimLeft(p, "/")
+		// Wrap in Git negative pathspec
+		specs = append(specs, fmt.Sprintf(`:(exclude)%s`, p))
+	}
+	return specs
 }

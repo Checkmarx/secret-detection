@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
@@ -8,9 +9,16 @@ import (
 	"testing"
 )
 
+const (
+	ignoreResultIdConfig = "testdata/configs/ignore-result-id.yaml"
+	ignoreRuleIdConfig   = "testdata/configs/ignore-rule-id.yaml"
+	pathExclusionConfig  = "testdata/configs/path-exclusion.yaml"
+	misconfiguredConfig  = "testdata/configs/misconfigured.yaml"
+)
+
 func TestPreReceiveScan(t *testing.T) {
 	t.Run("commit files without secrets and push", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// Create files without secrets in the client repo
@@ -45,7 +53,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "No secrets detected by Cx Secret Scanner")
 	})
 	t.Run("commit files with secrets and push", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// Create files with secrets in the client repo
@@ -80,7 +88,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "Detected 2 secrets across 1 commit")
 	})
 	t.Run("commit files with secrets and push with skip option", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// Create files with secrets in the client repo
@@ -115,7 +123,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "Cx Secret Scanner bypassed")
 	})
 	t.Run("first commit no secrets and second commit with secrets", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// Create files without secrets in the client repo
@@ -171,7 +179,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "Detected 2 secrets across 1 commit")
 	})
 	t.Run("create tag with secret and push", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// Create file with secret in the client repo
@@ -208,7 +216,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "Detected 1 secret across 1 commit")
 	})
 	t.Run("create multiple branches with secrets and push", func(t *testing.T) {
-		workDir, cleanup := setupPreReceiveTmpDir(t)
+		workDir, cleanup := setupPreReceiveTmpDir(t, "")
 		defer cleanup()
 
 		// checkout to branch1
@@ -290,12 +298,169 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.Contains(t, outputString, "(pre-receive hook declined)")
 		assert.Contains(t, outputString, "Detected 3 secrets across 3 commits")
 	})
+	t.Run("push secrets ignored by result id", func(t *testing.T) {
+		rel := ignoreResultIdConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// Create files with secrets in the client repo
+		file1 := filepath.Join(workDir, "secrets.txt")
+		err = os.WriteFile(file1, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		file2 := filepath.Join(workDir, "secrets2.txt")
+		err = os.WriteFile(file2, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		// Stage files
+		cmdAdd := exec.Command("git", "add", "secrets.txt", "secrets2.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.NoError(t, err, "should not fail to push: %s", outputString)
+		assert.NotContains(t, outputString, "[remote rejected]")
+		assert.NotContains(t, outputString, "(pre-receive hook declined)")
+		assert.Contains(t, outputString, "No secrets detected by Cx Secret Scanner")
+	})
+	t.Run("push secrets ignored by rule id", func(t *testing.T) {
+		rel := ignoreRuleIdConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// Create files with secrets in the client repo
+		file1 := filepath.Join(workDir, "secrets.txt")
+		err = os.WriteFile(file1, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		file2 := filepath.Join(workDir, "secrets2.txt")
+		err = os.WriteFile(file2, []byte("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature"), 0644)
+		assert.NoError(t, err)
+
+		// Stage files
+		cmdAdd := exec.Command("git", "add", "secrets.txt", "secrets2.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.NoError(t, err, "should not fail to push: %s", outputString)
+		assert.NotContains(t, outputString, "[remote rejected]")
+		assert.NotContains(t, outputString, "(pre-receive hook declined)")
+		assert.Contains(t, outputString, "No secrets detected by Cx Secret Scanner")
+	})
+	t.Run("push secrets ignored by path exclusion", func(t *testing.T) {
+		rel := pathExclusionConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// Create files with secrets in excluded paths
+		paths := []string{
+			"secret.txt",                // excluded by exact name
+			"internal/tests/secret.txt", // excluded by glob internal/tests/*
+			"docs/secret.md",            // excluded by *.md
+		}
+		for _, p := range paths {
+			full := filepath.Join(workDir, p)
+			// ensure parent dirs exist
+			err = os.MkdirAll(filepath.Dir(full), 0755)
+			assert.NoError(t, err, "failed to create directory for %s", p)
+
+			err = os.WriteFile(full, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+			assert.NoError(t, err, "failed to write %s", p)
+		}
+
+		// Stage files
+		cmdAdd := exec.Command("git", "add", ".")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.NoError(t, err, "should not fail to push: %s", outputString)
+		assert.NotContains(t, outputString, "[remote rejected]")
+		assert.NotContains(t, outputString, "(pre-receive hook declined)")
+		assert.Contains(t, outputString, "No secrets detected by Cx Secret Scanner")
+	})
+	t.Run("commit files without secrets and push with misconfigured config", func(t *testing.T) {
+		rel := misconfiguredConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// Create files without secrets in the client repo
+		file1 := filepath.Join(workDir, "no-secrets.txt")
+		err = os.WriteFile(file1, []byte("dummy content 1"), 0644)
+		assert.NoError(t, err)
+
+		file2 := filepath.Join(workDir, "no-secrets2.txt")
+		err = os.WriteFile(file2, []byte("dummy content 2"), 0644)
+		assert.NoError(t, err)
+
+		// Stage files
+		cmdAdd := exec.Command("git", "add", "no-secrets.txt", "no-secrets2.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "no secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.Error(t, err, "should fail to push: %s", outputString)
+		assert.Contains(t, outputString, fmt.Sprintf("configuration file at %s is misconfigured", configPath))
+	})
 }
 
 // setupPreReceiveTmpDir creates a temporary directory, initializes a bare Git server
 // repository with push-options advertised, clones it as a client repository,
 // and returns the client working directory.
-func setupPreReceiveTmpDir(t *testing.T) (workDir string, cleanup func()) {
+func setupPreReceiveTmpDir(t *testing.T, configPath string) (workDir string, cleanup func()) {
 	// Save original working directory
 	origWD, err := os.Getwd()
 	assert.NoError(t, err)
@@ -320,10 +485,14 @@ func setupPreReceiveTmpDir(t *testing.T) (workDir string, cleanup func()) {
 	// Write pre-receive hook
 	hooksDir := filepath.Join(serverDir, "hooks")
 	preReceivePath := filepath.Join(hooksDir, "pre-receive")
-	hookContent := []byte(`#!/bin/sh
-exec cx hooks pre-receive secrets-scan "$@"
-`)
-	err = os.WriteFile(preReceivePath, hookContent, 0755)
+	cmd := "exec cx hooks pre-receive secrets-scan"
+	if configPath != "" {
+		cmd = fmt.Sprintf(`%s --config "%s"`, cmd, configPath)
+	}
+	hookScript := fmt.Sprintf(`#!/bin/sh
+%s "$@"
+`, cmd)
+	err = os.WriteFile(preReceivePath, []byte(hookScript), 0755)
 	assert.NoError(t, err)
 
 	// Clone the bare repository into 'client'

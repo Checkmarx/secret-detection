@@ -26,7 +26,7 @@ func loadScanConfig(configPath string) (PreReceiveConfig, error) {
 		}
 
 		if err = yaml.Unmarshal(data, &cfg); err != nil {
-			return PreReceiveConfig{}, fmt.Errorf("configuration file is misconfigured")
+			return PreReceiveConfig{}, fmt.Errorf("configuration file at %s is misconfigured", configPath)
 		}
 	}
 	return PreReceiveConfig{

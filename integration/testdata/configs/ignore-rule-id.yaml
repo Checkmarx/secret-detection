@@ -1,0 +1,4 @@
+ignore_secrets:
+  ignore_rule:
+    - "github-pat"
+    - "jwt"

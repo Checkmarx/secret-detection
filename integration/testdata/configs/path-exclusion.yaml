@@ -1,0 +1,4 @@
+exclude_path:
+  - "secret.txt"
+  - "internal/tests/*"
+  - "*.md"

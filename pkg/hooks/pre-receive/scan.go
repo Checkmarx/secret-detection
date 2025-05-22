@@ -47,11 +47,11 @@ func Scan(configPath string) error {
 	}
 
 	if scanReport.TotalSecretsFound > 0 {
-		err = UpdateResultsStartAndEndLine(scanReport, fileDiffs)
+		err = updateResultsStartAndEndLine(scanReport, fileDiffs)
 		if err != nil {
 			return err
 		}
-		RemoveDuplicateResults(scanReport)
+		removeDuplicateResults(scanReport)
 		fmt.Print(report.PreReceiveReport(scanReport))
 		os.Exit(1)
 	}
@@ -228,7 +228,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed st
 	return addedBuilder.String(), removedBuilder.String()
 }
 
-func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report.FileInfo) error {
+func updateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string]*report.FileInfo) error {
 	for id, secrets := range report.Results {
 		for secretIndex, secret := range secrets {
 			fileDiff := fileDiffs[secret.Source]
@@ -246,7 +246,7 @@ func UpdateResultsStartAndEndLine(report *reporting.Report, fileDiffs map[string
 	return nil
 }
 
-func RemoveDuplicateResults(report *reporting.Report) {
+func removeDuplicateResults(report *reporting.Report) {
 	seenKeys := make(map[string]struct{})
 	newResults := make(map[string][]*secrets.Secret, len(report.Results))
 

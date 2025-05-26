@@ -65,7 +65,7 @@ func Scan(configPath string) error {
 			return err
 		}
 		removeDuplicateResults(scanReport)
-		preReceiveReport := report.PreReceiveReport(scanReport)
+		preReceiveReport := report.PreReceiveReport(scanReport, authors)
 		fmt.Print(preReceiveReport)
 		err = logReport(scanConfig.LogsFolderPath, preReceiveReport)
 		if err != nil {

@@ -70,8 +70,8 @@ func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*
 
 	go func() {
 		scanReport, err := scanner.ScanDynamic(itemsCh, twoms.ScanConfig{
-			IgnoreResultIds: scanConfig.IgnoreSecrets.IgnoreSecret,
-			IgnoreRules:     scanConfig.IgnoreSecrets.IgnoreRule,
+			IgnoreResultIds: scanConfig.IgnoreSecret,
+			IgnoreRules:     scanConfig.IgnoreRule,
 		})
 		if err != nil {
 			errScanCh <- err

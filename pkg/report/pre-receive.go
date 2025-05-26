@@ -114,7 +114,7 @@ PrintLoop:
 				sb.WriteString(secret.secret.ID)
 				sb.WriteString("\n        Secret Detected : ")
 				sb.WriteString(secret.secret.Value)
-				sb.WriteString("\n        Secret Type     : ")
+				sb.WriteString("\n        Rule ID         : ")
 				sb.WriteString(secret.secret.RuleID)
 				sb.WriteString("\n        Location        : Line ")
 				sb.WriteString(strconv.Itoa(secret.secret.StartLine))

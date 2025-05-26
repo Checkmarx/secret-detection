@@ -23,7 +23,8 @@ const (
 // but because we use an RNG with a fixed seed, the entire report is fully
 // deterministic. We can safely generate fixtures once and rely on
 // makeReport(…) to reproduce the same output every time in the tests.
-func makeReport(totalSecrets, numFiles, numCommits int) *reporting.Report {
+func makeReport(totalSecrets, numFiles, numCommits int) (*reporting.Report, map[string]string) {
+	authorByCommitID := make(map[string]string)
 	rng := rand.New(rand.NewSource(42))
 
 	// pre-generate commit IDs: COMMIT000, COMMIT001, …
@@ -59,6 +60,7 @@ func makeReport(totalSecrets, numFiles, numCommits int) *reporting.Report {
 		}
 
 		// each resultID gets its own slice (one secret)
+		authorByCommitID[commitID] = fmt.Sprintf("Name%02d", rng.Intn(10))
 		results[resultID] = []*secrets.Secret{s}
 	}
 
@@ -66,7 +68,7 @@ func makeReport(totalSecrets, numFiles, numCommits int) *reporting.Report {
 		TotalItemsScanned: numFiles,
 		TotalSecretsFound: totalSecrets,
 		Results:           results,
-	}
+	}, authorByCommitID
 }
 
 // randomValue returns an alphanumeric string of length n, using the provided rng.
@@ -365,13 +367,13 @@ func TestPreReceiveReport(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rpt := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
+			rpt, authors := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
 
 			wantBytes, err := os.ReadFile(tc.expectedFile)
 			assert.NoError(t, err, "reading %s", tc.expectedFile)
 			want := strings.ReplaceAll(string(wantBytes), "\r", "")
 
-			got := PreReceiveReport(rpt)
+			got := PreReceiveReport(rpt, authors)
 
 			assert.Equal(t, want, got, "output mismatch for %s", tc.name)
 		})

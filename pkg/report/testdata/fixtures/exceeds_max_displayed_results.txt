@@ -6,11 +6,13 @@ Detected 150 secrets across 4 commits
 Presenting first 100 results
 
 Commit #1 (COMMIT000): 38 secrets in 5 files
+Author: Name03
+
     File: file00.txt (8 secrets)
-        Result ID       : ID100
-        Secret Detected : xJeL***
-        Rule ID         : RULE03
-        Location        : Line 29
+        Result ID       : ID060
+        Secret Detected : tO5V***
+        Rule ID         : RULE09
+        Location        : Line 20
         Content Type    : Added
 
         Result ID       : ID000
@@ -19,607 +21,611 @@ Commit #1 (COMMIT000): 38 secrets in 5 files
         Location        : Line 43
         Content Type    : Added
 
-        Result ID       : ID080
-        Secret Detected : eJZ4***
-        Rule ID         : RULE02
-        Location        : Line 69
-        Content Type    : Added
-
         Result ID       : ID120
-        Secret Detected : LkSi***
-        Rule ID         : RULE02
-        Location        : Line 72
-        Content Type    : Added
-
-        Result ID       : ID040
-        Secret Detected : SzPP***
-        Rule ID         : RULE08
-        Location        : Line 141
-        Content Type    : Added
-
-        Result ID       : ID060
-        Secret Detected : 1rGN***
-        Rule ID         : RULE09
-        Location        : Line 150
-        Content Type    : Added
-
-        Result ID       : ID020
-        Secret Detected : PQpT***
-        Rule ID         : RULE03
-        Location        : Line 165
+        Secret Detected : 0GNN***
+        Rule ID         : RULE04
+        Location        : Line 65
         Content Type    : Added
 
         Result ID       : ID140
-        Secret Detected : L6T9***
-        Rule ID         : RULE01
-        Location        : Line 180
+        Secret Detected : PhDY***
+        Rule ID         : RULE05
+        Location        : Line 100
+        Content Type    : Added
+
+        Result ID       : ID040
+        Secret Detected : MGih***
+        Rule ID         : RULE08
+        Location        : Line 123
+        Content Type    : Added
+
+        Result ID       : ID080
+        Secret Detected : FRuB***
+        Rule ID         : RULE03
+        Location        : Line 163
+        Content Type    : Added
+
+        Result ID       : ID100
+        Secret Detected : Gik6***
+        Rule ID         : RULE03
+        Location        : Line 164
+        Content Type    : Added
+
+        Result ID       : ID020
+        Secret Detected : dzTs***
+        Rule ID         : RULE09
+        Location        : Line 165
         Content Type    : Added
 
     File: file02.txt (7 secrets)
-        Result ID       : ID112
-        Secret Detected : GkEf***
-        Rule ID         : RULE09
-        Location        : Line 9
-        Content Type    : Added
-
-        Result ID       : ID052
-        Secret Detected : XfdL***
-        Rule ID         : RULE04
-        Location        : Line 70
-        Content Type    : Added
-
-        Result ID       : ID072
-        Secret Detected : vdMR***
-        Rule ID         : RULE00
-        Location        : Line 124
-        Content Type    : Added
-
-        Result ID       : ID132
-        Secret Detected : 2oxz***
-        Rule ID         : RULE07
-        Location        : Line 129
-        Content Type    : Added
-
         Result ID       : ID032
-        Secret Detected : Sk8N***
-        Rule ID         : RULE06
-        Location        : Line 155
-        Content Type    : Added
-
-        Result ID       : ID012
-        Secret Detected : qPIs***
-        Rule ID         : RULE08
-        Location        : Line 160
+        Secret Detected : LKi6***
+        Rule ID         : RULE00
+        Location        : Line 10
         Content Type    : Added
 
         Result ID       : ID092
+        Secret Detected : 2j39***
+        Rule ID         : RULE09
+        Location        : Line 87
+        Content Type    : Added
+
+        Result ID       : ID052
+        Secret Detected : jQM0***
+        Rule ID         : RULE01
+        Location        : Line 136
+        Content Type    : Added
+
+        Result ID       : ID112
+        Secret Detected : 2Vl0***
+        Rule ID         : RULE02
+        Location        : Line 146
+        Content Type    : Added
+
+        Result ID       : ID012
+        Secret Detected : gxKw***
+        Rule ID         : RULE06
+        Location        : Line 151
+        Content Type    : Added
+
+        Result ID       : ID132
+        Secret Detected : 4rNb***
+        Rule ID         : RULE07
+        Location        : Line 168
+        Content Type    : Added
+
+        Result ID       : ID072
+        Secret Detected : 6W6y***
+        Rule ID         : RULE05
+        Location        : Line 175
+        Content Type    : Added
+
+    File: file04.txt (8 secrets)
+        Result ID       : ID084
+        Secret Detected : H5vi***
+        Rule ID         : RULE01
+        Location        : Line 26
+        Content Type    : Added
+
+        Result ID       : ID104
+        Secret Detected : 7BCd***
+        Rule ID         : RULE04
+        Location        : Line 66
+        Content Type    : Added
+
+        Result ID       : ID144
+        Secret Detected : vhBx***
+        Rule ID         : RULE00
+        Location        : Line 68
+        Content Type    : Added
+
+        Result ID       : ID124
+        Secret Detected : SLqb***
+        Rule ID         : RULE06
+        Location        : Line 93
+        Content Type    : Added
+
+        Result ID       : ID004
+        Secret Detected : wHUM***
+        Rule ID         : RULE08
+        Location        : Line 104
+        Content Type    : Added
+
+        Result ID       : ID064
+        Secret Detected : NRte***
+        Rule ID         : RULE02
+        Location        : Line 122
+        Content Type    : Added
+
+        Result ID       : ID044
+        Secret Detected : iBUU***
+        Rule ID         : RULE06
+        Location        : Line 133
+        Content Type    : Added
+
+        Result ID       : ID024
+        Secret Detected : ykPe***
+        Rule ID         : RULE05
+        Location        : Line 189
+        Content Type    : Added
+
+    File: file06.txt (7 secrets)
+        Result ID       : ID096
+        Secret Detected : ui2y***
+        Rule ID         : RULE09
+        Location        : Line 19
+        Content Type    : Added
+
+        Result ID       : ID136
+        Secret Detected : m5N5***
+        Rule ID         : RULE06
+        Location        : Line 45
+        Content Type    : Added
+
+        Result ID       : ID016
+        Secret Detected : k6fp***
+        Rule ID         : RULE07
+        Location        : Line 48
+        Content Type    : Added
+
+        Result ID       : ID036
+        Secret Detected : UfOu***
+        Rule ID         : RULE05
+        Location        : Line 68
+        Content Type    : Added
+
+        Result ID       : ID076
+        Secret Detected : BIFV***
+        Rule ID         : RULE02
+        Location        : Line 75
+        Content Type    : Added
+
+        Result ID       : ID116
+        Secret Detected : dWQu***
+        Rule ID         : RULE01
+        Location        : Line 77
+        Content Type    : Added
+
+        Result ID       : ID056
+        Secret Detected : 3cYW***
+        Rule ID         : RULE06
+        Location        : Line 150
+        Content Type    : Added
+
+    File: file08.txt (8 secrets)
+        Result ID       : ID128
+        Secret Detected : zR0p***
+        Rule ID         : RULE07
+        Location        : Line 2
+        Content Type    : Added
+
+        Result ID       : ID108
+        Secret Detected : tfCT***
+        Rule ID         : RULE03
+        Location        : Line 18
+        Content Type    : Added
+
+        Result ID       : ID148
+        Secret Detected : sF1G***
+        Rule ID         : RULE04
+        Location        : Line 48
+        Content Type    : Added
+
+        Result ID       : ID068
+        Secret Detected : nlRW***
+        Rule ID         : RULE09
+        Location        : Line 96
+        Content Type    : Added
+
+        Result ID       : ID008
+        Secret Detected : DX5B***
+        Rule ID         : RULE00
+        Location        : Line 132
+        Content Type    : Added
+
+        Result ID       : ID028
+        Secret Detected : PDnQ***
+        Rule ID         : RULE00
+        Location        : Line 134
+        Content Type    : Added
+
+        Result ID       : ID048
+        Secret Detected : WoVh***
+        Rule ID         : RULE02
+        Location        : Line 141
+        Content Type    : Added
+
+        Result ID       : ID088
         Secret Detected : SiAN***
         Rule ID         : RULE08
         Location        : Line 171
         Content Type    : Added
 
-    File: file04.txt (8 secrets)
-        Result ID       : ID064
-        Secret Detected : uPbm***
-        Rule ID         : RULE01
-        Location        : Line 77
-        Content Type    : Added
+Commit #2 (COMMIT001): 38 secrets in 5 files
+Author: Name03
 
-        Result ID       : ID044
-        Secret Detected : k4Kr***
-        Rule ID         : RULE06
-        Location        : Line 84
-        Content Type    : Added
-
-        Result ID       : ID124
-        Secret Detected : YT8f***
-        Rule ID         : RULE09
-        Location        : Line 87
-        Content Type    : Added
-
-        Result ID       : ID144
-        Secret Detected : Q47A***
-        Rule ID         : RULE04
-        Location        : Line 100
-        Content Type    : Added
-
-        Result ID       : ID084
-        Secret Detected : RavS***
-        Rule ID         : RULE05
-        Location        : Line 111
-        Content Type    : Added
-
-        Result ID       : ID004
-        Secret Detected : gYek***
-        Rule ID         : RULE00
-        Location        : Line 175
-        Content Type    : Added
-
-        Result ID       : ID024
-        Secret Detected : DrSk***
+    File: file01.txt (8 secrets)
+        Result ID       : ID081
+        Secret Detected : WyfX***
         Rule ID         : RULE02
-        Location        : Line 177
-        Content Type    : Added
-
-        Result ID       : ID104
-        Secret Detected : 7VX9***
-        Rule ID         : RULE06
-        Location        : Line 179
-        Content Type    : Added
-
-    File: file06.txt (7 secrets)
-        Result ID       : ID116
-        Secret Detected : 9gzW***
-        Rule ID         : RULE06
         Location        : Line 8
         Content Type    : Added
 
-        Result ID       : ID096
-        Secret Detected : eLP1***
-        Rule ID         : RULE06
-        Location        : Line 18
-        Content Type    : Added
-
-        Result ID       : ID076
-        Secret Detected : wn4G***
-        Rule ID         : RULE09
-        Location        : Line 31
-        Content Type    : Added
-
-        Result ID       : ID136
-        Secret Detected : MJIb***
-        Rule ID         : RULE03
-        Location        : Line 34
-        Content Type    : Added
-
-        Result ID       : ID016
-        Secret Detected : lGlR***
-        Rule ID         : RULE03
-        Location        : Line 160
-        Content Type    : Added
-
-        Result ID       : ID036
-        Secret Detected : aAnS***
-        Rule ID         : RULE03
-        Location        : Line 171
-        Content Type    : Added
-
-        Result ID       : ID056
-        Secret Detected : wVKk***
-        Rule ID         : RULE08
-        Location        : Line 189
-        Content Type    : Added
-
-    File: file08.txt (8 secrets)
-        Result ID       : ID008
-        Secret Detected : DTQm***
-        Rule ID         : RULE08
-        Location        : Line 56
-        Content Type    : Added
-
-        Result ID       : ID088
-        Secret Detected : ohiB***
-        Rule ID         : RULE07
-        Location        : Line 74
-        Content Type    : Added
-
-        Result ID       : ID128
-        Secret Detected : k6ws***
-        Rule ID         : RULE07
-        Location        : Line 119
-        Content Type    : Added
-
-        Result ID       : ID048
-        Secret Detected : xZpB***
-        Rule ID         : RULE00
-        Location        : Line 136
-        Content Type    : Added
-
-        Result ID       : ID068
-        Secret Detected : EG2N***
-        Rule ID         : RULE07
-        Location        : Line 154
-        Content Type    : Added
-
-        Result ID       : ID148
-        Secret Detected : sGiR***
-        Rule ID         : RULE02
-        Location        : Line 158
-        Content Type    : Added
-
-        Result ID       : ID028
-        Secret Detected : 9F6F***
-        Rule ID         : RULE01
-        Location        : Line 176
-        Content Type    : Added
-
-        Result ID       : ID108
-        Secret Detected : YZYi***
-        Rule ID         : RULE03
-        Location        : Line 186
-        Content Type    : Added
-
-Commit #2 (COMMIT001): 38 secrets in 5 files
-    File: file01.txt (8 secrets)
         Result ID       : ID121
-        Secret Detected : deh9***
-        Rule ID         : RULE01
-        Location        : Line 39
-        Content Type    : Added
-
-        Result ID       : ID001
-        Secret Detected : nwj2***
-        Rule ID         : RULE02
-        Location        : Line 102
-        Content Type    : Added
-
-        Result ID       : ID061
-        Secret Detected : kOGs***
-        Rule ID         : RULE06
-        Location        : Line 112
+        Secret Detected : D1HH***
+        Rule ID         : RULE03
+        Location        : Line 26
         Content Type    : Added
 
         Result ID       : ID141
-        Secret Detected : W4Dw***
+        Secret Detected : oKwP***
         Rule ID         : RULE09
-        Location        : Line 124
+        Location        : Line 56
         Content Type    : Added
 
-        Result ID       : ID081
-        Secret Detected : tKS9***
-        Rule ID         : RULE09
-        Location        : Line 160
+        Result ID       : ID061
+        Secret Detected : DVOV***
+        Rule ID         : RULE05
+        Location        : Line 62
         Content Type    : Added
 
         Result ID       : ID041
-        Secret Detected : TK1z***
-        Rule ID         : RULE00
-        Location        : Line 182
+        Secret Detected : lhB6***
+        Rule ID         : RULE02
+        Location        : Line 96
+        Content Type    : Added
+
+        Result ID       : ID001
+        Secret Detected : wj2q***
+        Rule ID         : RULE02
+        Location        : Line 115
         Content Type    : Added
 
         Result ID       : ID021
-        Secret Detected : Ts36***
-        Rule ID         : RULE09
-        Location        : Line 197
+        Secret Detected : ew3v***
+        Rule ID         : RULE00
+        Location        : Line 198
         Content Type    : Added
 
         Result ID       : ID101
-        Secret Detected : 3WTY***
-        Rule ID         : RULE05
-        Location        : Line 199
+        Secret Detected : Jpu1***
+        Rule ID         : RULE09
+        Location        : Line 198
         Content Type    : Added
 
     File: file03.txt (7 secrets)
+        Result ID       : ID013
+        Secret Detected : tLNa***
+        Rule ID         : RULE00
+        Location        : Line 29
+        Content Type    : Added
+
+        Result ID       : ID133
+        Secret Detected : nP8Q***
+        Rule ID         : RULE06
+        Location        : Line 35
+        Content Type    : Added
+
         Result ID       : ID033
-        Secret Detected : wEAR***
-        Rule ID         : RULE05
-        Location        : Line 16
+        Secret Detected : xzTj***
+        Rule ID         : RULE03
+        Location        : Line 53
+        Content Type    : Added
+
+        Result ID       : ID053
+        Secret Detected : 53ms***
+        Rule ID         : RULE06
+        Location        : Line 86
         Content Type    : Added
 
         Result ID       : ID113
-        Secret Detected : CTgD***
+        Secret Detected : 6OoN***
+        Rule ID         : RULE06
+        Location        : Line 91
+        Content Type    : Added
+
+        Result ID       : ID093
+        Secret Detected : KIYU***
+        Rule ID         : RULE06
+        Location        : Line 97
+        Content Type    : Added
+
+        Result ID       : ID073
+        Secret Detected : 5Qxg***
+        Rule ID         : RULE05
+        Location        : Line 149
+        Content Type    : Added
+
+    File: file05.txt (8 secrets)
+        Result ID       : ID025
+        Secret Detected : HvVZ***
+        Rule ID         : RULE05
+        Location        : Line 37
+        Content Type    : Added
+
+        Result ID       : ID125
+        Secret Detected : loJe***
+        Rule ID         : RULE07
+        Location        : Line 46
+        Content Type    : Added
+
+        Result ID       : ID105
+        Secret Detected : 4mS0***
         Rule ID         : RULE09
         Location        : Line 59
         Content Type    : Added
 
-        Result ID       : ID073
-        Secret Detected : fUAL***
-        Rule ID         : RULE06
-        Location        : Line 72
-        Content Type    : Added
-
-        Result ID       : ID133
-        Secret Detected : PcPk***
-        Rule ID         : RULE08
-        Location        : Line 124
-        Content Type    : Added
-
-        Result ID       : ID093
-        Secret Detected : Kmnw***
-        Rule ID         : RULE03
-        Location        : Line 145
-        Content Type    : Added
-
-        Result ID       : ID013
-        Secret Detected : fQwC***
-        Rule ID         : RULE07
-        Location        : Line 174
-        Content Type    : Added
-
-        Result ID       : ID053
-        Secret Detected : Em3h***
-        Rule ID         : RULE00
-        Location        : Line 182
-        Content Type    : Added
-
-    File: file05.txt (8 secrets)
-        Result ID       : ID065
-        Secret Detected : aP1w***
-        Rule ID         : RULE06
-        Location        : Line 27
-        Content Type    : Added
-
         Result ID       : ID045
-        Secret Detected : LeLf***
-        Rule ID         : RULE01
-        Location        : Line 38
-        Content Type    : Added
-
-        Result ID       : ID125
-        Secret Detected : vVQg***
+        Secret Detected : gt91***
         Rule ID         : RULE00
-        Location        : Line 58
+        Location        : Line 77
         Content Type    : Added
 
-        Result ID       : ID105
-        Secret Detected : WID9***
+        Result ID       : ID065
+        Secret Detected : uEG2***
         Rule ID         : RULE01
-        Location        : Line 157
-        Content Type    : Added
-
-        Result ID       : ID025
-        Secret Detected : VNyk***
-        Rule ID         : RULE04
-        Location        : Line 166
-        Content Type    : Added
-
-        Result ID       : ID085
-        Secret Detected : bWfl***
-        Rule ID         : RULE07
-        Location        : Line 168
-        Content Type    : Added
-
-        Result ID       : ID005
-        Secret Detected : JK6S***
-        Rule ID         : RULE01
-        Location        : Line 178
+        Location        : Line 77
         Content Type    : Added
 
         Result ID       : ID145
-        Secret Detected : C7Jv***
-        Rule ID         : RULE04
-        Location        : Line 198
-        Content Type    : Added
-
-    File: file07.txt (7 secrets)
-        Result ID       : ID137
-        Secret Detected : G4lM***
-        Rule ID         : RULE04
-        Location        : Line 2
-        Content Type    : Added
-
-        Result ID       : ID097
-        Secret Detected : Kwx0***
-        Rule ID         : RULE01
-        Location        : Line 5
-        Content Type    : Added
-
-        Result ID       : ID017
-        Secret Detected : LZKL***
-        Rule ID         : RULE01
-        Location        : Line 16
-        Content Type    : Added
-
-        Result ID       : ID117
-        Secret Detected : qk2V***
-        Rule ID         : RULE06
-        Location        : Line 89
-        Content Type    : Added
-
-        Result ID       : ID037
-        Secret Detected : zdqR***
-        Rule ID         : RULE01
-        Location        : Line 92
-        Content Type    : Added
-
-        Result ID       : ID057
-        Secret Detected : hqEw***
-        Rule ID         : RULE09
-        Location        : Line 140
-        Content Type    : Added
-
-        Result ID       : ID077
-        Secret Detected : bO9p***
-        Rule ID         : RULE05
-        Location        : Line 179
-        Content Type    : Added
-
-    File: file09.txt (8 secrets)
-        Result ID       : ID149
-        Secret Detected : g9eU***
-        Rule ID         : RULE01
-        Location        : Line 10
-        Content Type    : Added
-
-        Result ID       : ID049
-        Secret Detected : 5HVL***
-        Rule ID         : RULE03
-        Location        : Line 13
-        Content Type    : Added
-
-        Result ID       : ID109
-        Secret Detected : HFbH***
-        Rule ID         : RULE08
-        Location        : Line 15
-        Content Type    : Added
-
-        Result ID       : ID069
-        Secret Detected : sHq2***
-        Rule ID         : RULE00
-        Location        : Line 65
-        Content Type    : Added
-
-        Result ID       : ID009
-        Secret Detected : r4vj***
-        Rule ID         : RULE01
-        Location        : Line 80
-        Content Type    : Added
-
-        Result ID       : ID129
-        Secret Detected : HyKB***
-        Rule ID         : RULE00
-        Location        : Line 98
-        Content Type    : Added
-
-        Result ID       : ID089
-        Secret Detected : 33S4***
-        Rule ID         : RULE02
-        Location        : Line 117
-        Content Type    : Added
-
-        Result ID       : ID029
-        Secret Detected : kPhi***
-        Rule ID         : RULE09
-        Location        : Line 188
-        Content Type    : Added
-
-Commit #3 (COMMIT002): 37 secrets in 5 files
-    File: file00.txt (7 secrets)
-        Result ID       : ID110
-        Secret Detected : 6lRZ***
-        Rule ID         : RULE02
-        Location        : Line 25
-        Content Type    : Added
-
-        Result ID       : ID130
-        Secret Detected : umje***
-        Rule ID         : RULE08
-        Location        : Line 30
-        Content Type    : Added
-
-        Result ID       : ID090
-        Secret Detected : ZgKA***
-        Rule ID         : RULE04
-        Location        : Line 36
-        Content Type    : Added
-
-        Result ID       : ID030
-        Secret Detected : EiFS***
+        Secret Detected : Cyfe***
         Rule ID         : RULE07
-        Location        : Line 73
+        Location        : Line 78
         Content Type    : Added
 
-        Result ID       : ID010
-        Secret Detected : 9SEK***
-        Rule ID         : RULE05
-        Location        : Line 74
+        Result ID       : ID085
+        Secret Detected : ASB3***
+        Rule ID         : RULE09
+        Location        : Line 110
         Content Type    : Added
 
-        Result ID       : ID050
-        Secret Detected : Q6YD***
-        Rule ID         : RULE04
-        Location        : Line 75
-        Content Type    : Added
-
-        Result ID       : ID070
-        Secret Detected : fb1O***
-        Rule ID         : RULE02
+        Result ID       : ID005
+        Secret Detected : 75az***
+        Rule ID         : RULE08
         Location        : Line 183
         Content Type    : Added
 
-    File: file02.txt (8 secrets)
-        Result ID       : ID082
-        Secret Detected : Hzgq***
-        Rule ID         : RULE03
-        Location        : Line 1
+    File: file07.txt (7 secrets)
+        Result ID       : ID037
+        Secret Detected : eYMh***
+        Rule ID         : RULE01
+        Location        : Line 22
         Content Type    : Added
 
-        Result ID       : ID142
-        Secret Detected : Z2M3***
-        Rule ID         : RULE00
-        Location        : Line 35
-        Content Type    : Added
-
-        Result ID       : ID062
-        Secret Detected : 6uQP***
-        Rule ID         : RULE04
-        Location        : Line 114
-        Content Type    : Added
-
-        Result ID       : ID022
-        Secret Detected : w3vh***
+        Result ID       : ID017
+        Secret Detected : O1iU***
         Rule ID         : RULE08
-        Location        : Line 128
+        Location        : Line 56
         Content Type    : Added
 
-        Result ID       : ID122
-        Secret Detected : Sbxd***
-        Rule ID         : RULE09
-        Location        : Line 157
+        Result ID       : ID097
+        Secret Detected : c2yL***
+        Rule ID         : RULE03
+        Location        : Line 117
         Content Type    : Added
 
-        Result ID       : ID102
-        Secret Detected : l2C0***
+        Result ID       : ID137
+        Secret Detected : hs07***
+        Rule ID         : RULE00
+        Location        : Line 120
+        Content Type    : Added
+
+        Result ID       : ID057
+        Secret Detected : JQAS***
+        Rule ID         : RULE03
+        Location        : Line 160
+        Content Type    : Added
+
+        Result ID       : ID077
+        Secret Detected : VOph***
         Rule ID         : RULE08
         Location        : Line 164
         Content Type    : Added
 
-        Result ID       : ID042
-        Secret Detected : 7mG3***
+        Result ID       : ID117
+        Secret Detected : Kdrg***
+        Rule ID         : RULE01
+        Location        : Line 182
+        Content Type    : Added
+
+    File: file09.txt (8 secrets)
+        Result ID       : ID029
+        Secret Detected : yOUn***
+        Rule ID         : RULE07
+        Location        : Line 0
+        Content Type    : Added
+
+        Result ID       : ID149
+        Secret Detected : O5gB***
+        Rule ID         : RULE06
+        Location        : Line 29
+        Content Type    : Added
+
+        Result ID       : ID049
+        Secret Detected : ODRj***
+        Rule ID         : RULE08
+        Location        : Line 29
+        Content Type    : Added
+
+        Result ID       : ID009
+        Secret Detected : hwev***
+        Rule ID         : RULE07
+        Location        : Line 46
+        Content Type    : Added
+
+        Result ID       : ID109
+        Secret Detected : RXN4***
         Rule ID         : RULE00
-        Location        : Line 165
+        Location        : Line 86
+        Content Type    : Added
+
+        Result ID       : ID129
+        Secret Detected : 7itp***
+        Rule ID         : RULE09
+        Location        : Line 171
+        Content Type    : Added
+
+        Result ID       : ID069
+        Secret Detected : RYwt***
+        Rule ID         : RULE07
+        Location        : Line 172
+        Content Type    : Added
+
+        Result ID       : ID089
+        Secret Detected : mnw3***
+        Rule ID         : RULE05
+        Location        : Line 192
+        Content Type    : Added
+
+Commit #3 (COMMIT002): 37 secrets in 5 files
+Author: Name05
+
+    File: file00.txt (7 secrets)
+        Result ID       : ID110
+        Secret Detected : uc9w***
+        Rule ID         : RULE08
+        Location        : Line 16
+        Content Type    : Added
+
+        Result ID       : ID010
+        Secret Detected : xtqt***
+        Rule ID         : RULE00
+        Location        : Line 28
+        Content Type    : Added
+
+        Result ID       : ID130
+        Secret Detected : NiMJ***
+        Rule ID         : RULE04
+        Location        : Line 67
+        Content Type    : Added
+
+        Result ID       : ID050
+        Secret Detected : C0Ip***
+        Rule ID         : RULE06
+        Location        : Line 137
+        Content Type    : Added
+
+        Result ID       : ID070
+        Secret Detected : PjvY***
+        Rule ID         : RULE06
+        Location        : Line 161
+        Content Type    : Added
+
+        Result ID       : ID030
+        Secret Detected : 9Md9***
+        Rule ID         : RULE07
+        Location        : Line 163
+        Content Type    : Added
+
+        Result ID       : ID090
+        Secret Detected : fG9s***
+        Rule ID         : RULE02
+        Location        : Line 179
+        Content Type    : Added
+
+    File: file02.txt (8 secrets)
+        Result ID       : ID122
+        Secret Detected : 5Cg3***
+        Rule ID         : RULE02
+        Location        : Line 22
+        Content Type    : Added
+
+        Result ID       : ID042
+        Secret Detected : uGk4***
+        Rule ID         : RULE06
+        Location        : Line 47
         Content Type    : Added
 
         Result ID       : ID002
-        Secret Detected : 0iOt***
+        Secret Detected : OtQN***
+        Rule ID         : RULE02
+        Location        : Line 76
+        Content Type    : Added
+
+        Result ID       : ID022
+        Secret Detected : tdxT***
         Rule ID         : RULE09
-        Location        : Line 191
+        Location        : Line 87
+        Content Type    : Added
+
+        Result ID       : ID082
+        Secret Detected : iRtf***
+        Rule ID         : RULE07
+        Location        : Line 94
+        Content Type    : Added
+
+        Result ID       : ID102
+        Secret Detected : 86rv***
+        Rule ID         : RULE02
+        Location        : Line 126
+        Content Type    : Added
+
+        Result ID       : ID142
+        Secret Detected : Xxou***
+        Rule ID         : RULE06
+        Location        : Line 135
+        Content Type    : Added
+
+        Result ID       : ID062
+        Secret Detected : cUY1***
+        Rule ID         : RULE05
+        Location        : Line 152
         Content Type    : Added
 
     File: file04.txt (7 secrets)
-        Result ID       : ID074
-        Secret Detected : aHDh***
-        Rule ID         : RULE09
-        Location        : Line 4
-        Content Type    : Added
-
-        Result ID       : ID034
-        Secret Detected : S0M1***
-        Rule ID         : RULE05
-        Location        : Line 35
-        Content Type    : Added
-
-        Result ID       : ID014
-        Secret Detected : DGTF***
-        Rule ID         : RULE03
-        Location        : Line 58
-        Content Type    : Added
-
         Result ID       : ID114
-        Secret Detected : XN4b***
-        Rule ID         : RULE06
-        Location        : Line 63
-        Content Type    : Added
-
-        Result ID       : ID094
-        Secret Detected : mPfG***
-        Rule ID         : RULE00
-        Location        : Line 70
+        Secret Detected : 58Te***
+        Rule ID         : RULE09
+        Location        : Line 27
         Content Type    : Added
 
         Result ID       : ID134
-        Secret Detected : cNyF***
-        Rule ID         : RULE02
-        Location        : Line 99
+        Secret Detected : T9Ae***
+        Rule ID         : RULE01
+        Location        : Line 44
+        Content Type    : Added
+
+        Result ID       : ID074
+        Secret Detected : dRpo***
+        Rule ID         : RULE01
+        Location        : Line 48
+        Content Type    : Added
+
+        Result ID       : ID014
+        Secret Detected : JFaf***
+        Rule ID         : RULE04
+        Location        : Line 67
+        Content Type    : Added
+
+        Result ID       : ID094
+        Secret Detected : rLvm***
+        Rule ID         : RULE08
+        Location        : Line 114
+        Content Type    : Added
+
+        Result ID       : ID034
+        Secret Detected : n0Xj***
+        Rule ID         : RULE08
+        Location        : Line 164
         Content Type    : Added
 
         Result ID       : ID054
-        Secret Detected : SKyk***
-        Rule ID         : RULE07
-        Location        : Line 129
+        Secret Detected : SuKr***
+        Rule ID         : RULE05
+        Location        : Line 191
         Content Type    : Added
 
     File: file06.txt (8 secrets)
-        Result ID       : ID126
-        Secret Detected : IMLI***
-        Rule ID         : RULE07
-        Location        : Line 7
+        Result ID       : ID146
+        Secret Detected : 0T2H***
+        Rule ID         : RULE02
+        Location        : Line 24
         Content Type    : Added
 
-        Result ID       : ID146
-        Secret Detected : vj8b***
-        Rule ID         : RULE03
-        Location        : Line 31
+        Result ID       : ID086
+        Secret Detected : 08Zg***
+        Rule ID         : RULE08
+        Location        : Line 52
         Content Type    : Added
 
 A pre-receive hook set server side prevented you from push secrets.

@@ -33,7 +33,7 @@ type SourceInfo struct {
 	fileName    string
 }
 
-func PreReceiveReport(report *reporting.Report) string {
+func PreReceiveReport(report *reporting.Report, authorByCommitID map[string]string) string {
 	var sb strings.Builder
 	sb.Grow(512 * len(report.Results)) // avoid multiple reallocations
 
@@ -71,6 +71,7 @@ PrintLoop:
 
 		numberOfSecretsInCommit := len(secretsInfo)
 		numberOfFiles := len(secretsByFileName)
+		author := authorByCommitID[commitID]
 
 		sb.WriteString("Commit #")
 		sb.WriteString(strconv.Itoa(commitIndex))
@@ -83,6 +84,9 @@ PrintLoop:
 		sb.WriteString(strconv.Itoa(numberOfFiles))
 		sb.WriteString(pluralize(numberOfFiles, " file", " files"))
 		sb.WriteString("\n")
+		sb.WriteString("Author: ")
+		sb.WriteString(author)
+		sb.WriteString("\n\n")
 
 		fileNames := make([]string, 0, len(secretsByFileName))
 		for fileName := range secretsByFileName {

@@ -8,9 +8,10 @@ import (
 )
 
 type PreReceiveConfig struct {
-	ExcludePath  []string `yaml:"exclude_path"`
-	IgnoreRule   []string `yaml:"ignore_rule_id"`
-	IgnoreSecret []string `yaml:"ignore_result_id"`
+	ExcludePath    []string `yaml:"exclude_path"`
+	IgnoreRule     []string `yaml:"ignore_rule_id"`
+	IgnoreSecret   []string `yaml:"ignore_result_id"`
+	LogsFolderPath string   `yaml:"logs_folder_path"`
 }
 
 func loadScanConfig(configPath string) (PreReceiveConfig, error) {
@@ -26,9 +27,10 @@ func loadScanConfig(configPath string) (PreReceiveConfig, error) {
 		}
 	}
 	return PreReceiveConfig{
-		ExcludePath:  cfg.ExcludePath,
-		IgnoreRule:   cfg.IgnoreRule,
-		IgnoreSecret: cfg.IgnoreSecret,
+		ExcludePath:    cfg.ExcludePath,
+		IgnoreRule:     cfg.IgnoreRule,
+		IgnoreSecret:   cfg.IgnoreSecret,
+		LogsFolderPath: cfg.LogsFolderPath,
 	}, nil
 }
 

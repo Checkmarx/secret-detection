@@ -32,34 +32,52 @@ const (
 )
 
 func Scan(configPath string) error {
-	if skipScan() {
-		fmt.Print("Cx Secret Scanner bypassed")
-		return nil
+	refs, err := readRefsFromStdin()
+	if err != nil {
+		return fmt.Errorf("reading pushed refs: %w", err)
 	}
+
 	scanConfig, err := loadScanConfig(configPath)
 	if err != nil {
 		return err
 	}
 
-	scanReport, fileDiffs, err := runSecretScan(scanConfig)
+	err = validateLogsFolderPath(scanConfig.LogsFolderPath)
+	if err != nil {
+		return err
+	}
+
+	if skipScan() {
+		fmt.Print("Cx Secret Scanner bypassed")
+		err = logSkip(scanConfig.LogsFolderPath, refs)
+		return err
+	}
+
+	scanReport, fileDiffs, err := runSecretScan(scanConfig, refs)
 	if err != nil {
 		return fmt.Errorf("failed to run scan: %w", err)
 	}
 
 	if scanReport.TotalSecretsFound > 0 {
+		authors := authorByCommitID(fileDiffs)
 		err = updateResultsStartAndEndLine(scanReport, fileDiffs)
 		if err != nil {
 			return err
 		}
 		removeDuplicateResults(scanReport)
-		fmt.Print(report.PreReceiveReport(scanReport))
+		preReceiveReport := report.PreReceiveReport(scanReport)
+		fmt.Print(preReceiveReport)
+		err = logReport(scanConfig.LogsFolderPath, preReceiveReport)
+		if err != nil {
+			return err
+		}
 		os.Exit(1)
 	}
 	fmt.Print("No secrets detected by Cx Secret Scanner")
 	return nil
 }
 
-func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*report.FileInfo, error) {
+func runSecretScan(scanConfig PreReceiveConfig, refs []string) (*reporting.Report, map[string]*report.FileInfo, error) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	// Create the scanner.
@@ -80,7 +98,7 @@ func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*
 		reportCh <- scanReport
 	}()
 
-	fileDiffs, err := runDiffParsing(itemsCh, scanConfig)
+	fileDiffs, err := runDiffParsing(itemsCh, scanConfig, refs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,14 +113,13 @@ func runSecretScan(scanConfig PreReceiveConfig) (*reporting.Report, map[string]*
 	}
 }
 
-func runDiffParsing(itemsChan chan twoms.ScanItem, config PreReceiveConfig) (map[string]*report.FileInfo, error) {
+func runDiffParsing(itemsChan chan twoms.ScanItem, config PreReceiveConfig, refs []string) (map[string]*report.FileInfo, error) {
 	fileDiffs := make(map[string]*report.FileInfo)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fileExclusion := configExcludesToGitExcludes(config.ExcludePath)
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	for _, line := range refs {
 		// Expect exactly three fields: oldRev, newRev, and refName.
 		parts := strings.Fields(line)
 		if len(parts) != 3 {
@@ -294,4 +311,27 @@ func skipScan() bool {
 	}
 
 	return false
+}
+
+// readRefsFromStdin returns each “oldRev newRev refName” line as a slice.
+func readRefsFromStdin() ([]string, error) {
+	scanner := bufio.NewScanner(os.Stdin)
+	var refs []string
+	for scanner.Scan() {
+		refs = append(refs, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return refs, nil
+}
+
+func authorByCommitID(fileDiffs map[string]*report.FileInfo) map[string]string {
+	authors := make(map[string]string)
+	for _, fileInfo := range fileDiffs {
+		commitID := fileInfo.File.PatchHeader.SHA
+		author := fmt.Sprintf("%s <%s>", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
+		authors[commitID] = author
+	}
+	return authors
 }

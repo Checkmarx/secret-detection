@@ -28,6 +28,10 @@ func validateLogsFolderPath(folderPath string) error {
 
 // logReport writes the given report to a file named by creation time.
 func logReport(folderPath, scanReport string) error {
+	if folderPath == "" {
+		return nil
+	}
+
 	now := time.Now().UTC()
 	timestamp := now.Format("2006-01-02_15-04-05.000000000")
 	fileName := fmt.Sprintf("report_%s.log", timestamp)
@@ -50,6 +54,10 @@ func logReport(folderPath, scanReport string) error {
 // logSkip writes a one-off skip log named skip_<timestamp>.log,
 // including exactly which refs were pushed.
 func logSkip(folderPath string, refs []string) error {
+	if folderPath == "" {
+		return nil
+	}
+
 	ts := time.Now().UTC().Format("2006-01-02_15-04-05.000000000")
 
 	filePath := filepath.Join(folderPath, fmt.Sprintf("skip_%s.log", ts))

@@ -14,6 +14,7 @@ const (
 	ignoreRuleIdConfig   = "testdata/configs/ignore-rule-id.yaml"
 	pathExclusionConfig  = "testdata/configs/path-exclusion.yaml"
 	misconfiguredConfig  = "testdata/configs/misconfigured.yaml"
+	logsFolderConfig     = "testdata/configs/logs_folder_path.yaml"
 )
 
 func TestPreReceiveScan(t *testing.T) {
@@ -454,6 +455,148 @@ func TestPreReceiveScan(t *testing.T) {
 		outputString := string(output)
 		assert.Error(t, err, "should fail to push: %s", outputString)
 		assert.Contains(t, outputString, fmt.Sprintf("configuration file at %s is misconfigured", configPath))
+	})
+	t.Run("should create a report when pushing secrets with a valid logs folder path", func(t *testing.T) {
+		rel := logsFolderConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// ensure logs folder exists on the server side
+		serverDir := filepath.Join(filepath.Dir(workDir), "server")
+		logsDir := filepath.Join(serverDir, "logsFolder")
+		err = os.MkdirAll(logsDir, 0755)
+		assert.NoError(t, err, "should create logs folder on server")
+
+		// Create file with secret in the client repo
+		file := filepath.Join(workDir, "secrets.txt")
+		err = os.WriteFile(file, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		// Stage file
+		cmdAdd := exec.Command("git", "add", "secrets.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.Error(t, err, "should fail to push: %s", outputString)
+		assert.Contains(t, outputString, "[remote rejected]")
+		assert.Contains(t, outputString, "(pre-receive hook declined)")
+		assert.Contains(t, outputString, "Detected 1 secret across 1 commit")
+
+		// verify the report was written
+		entries, err := os.ReadDir(logsDir)
+		assert.NoError(t, err, "should be able to read logs folder")
+		assert.Len(t, entries, 1, "exactly one log file should have been created")
+
+		fname := entries[0].Name()
+		// timestamp format: 2006-01-02_15-04-05.000000000
+		assert.Regexp(t, `^report_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.log$`, fname,
+			"file name should include UTC timestamp")
+
+		contents, err := os.ReadFile(filepath.Join(logsDir, fname))
+		assert.NoError(t, err, "should read the report file")
+		assert.Contains(t, string(contents), "Detected 1 secret across 1 commit",
+			"report content should match the scan output")
+	})
+	t.Run("should create a report when skipping secret scanner with a valid logs folder path", func(t *testing.T) {
+		rel := logsFolderConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// ensure logs folder exists on the server side
+		serverDir := filepath.Join(filepath.Dir(workDir), "server")
+		logsDir := filepath.Join(serverDir, "logsFolder")
+		err = os.MkdirAll(logsDir, 0755)
+		assert.NoError(t, err, "should create logs folder on server")
+
+		// Create file with secret in the client repo
+		file := filepath.Join(workDir, "secrets.txt")
+		err = os.WriteFile(file, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		// Stage file
+		cmdAdd := exec.Command("git", "add", "secrets.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push", "-o", "skip-secret-scanner")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.NoError(t, err, "should fail to push: %s", outputString)
+		assert.NotContains(t, outputString, "[remote rejected]")
+		assert.NotContains(t, outputString, "(pre-receive hook declined)")
+		assert.NotContains(t, outputString, "Detected 1 secret across 1 commit")
+
+		// verify the report was written
+		entries, err := os.ReadDir(logsDir)
+		assert.NoError(t, err, "should be able to read logs folder")
+		assert.Len(t, entries, 1, "exactly one log file should have been created")
+
+		fname := entries[0].Name()
+		// timestamp format: 2006-01-02_15-04-05.000000000
+		assert.Regexp(t, `^skip_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.log$`, fname,
+			"file name should include UTC timestamp")
+
+		contents, err := os.ReadFile(filepath.Join(logsDir, fname))
+		assert.NoError(t, err, "should read the report file")
+		assert.Contains(t, string(contents), "Push skipped by secret scanner for refs",
+			"report content should reference content skipped")
+	})
+	t.Run("should fail when logs folder is set but does not exist", func(t *testing.T) {
+		rel := logsFolderConfig
+		configPath, err := filepath.Abs(rel)
+		assert.NoError(t, err, "should not fail to get configPath")
+		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)
+		defer cleanup()
+
+		// Create file with secret in the client repo
+		file := filepath.Join(workDir, "secrets.txt")
+		err = os.WriteFile(file, []byte("ghp_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"), 0644)
+		assert.NoError(t, err)
+
+		// Stage file
+		cmdAdd := exec.Command("git", "add", "secrets.txt")
+		cmdAdd.Dir = workDir
+		output, err := cmdAdd.CombinedOutput()
+		assert.NoError(t, err, "failed to stage files: %s", string(output))
+
+		// Commit changes
+		cmdCommit := exec.Command("git", "commit", "-m", "secrets")
+		cmdCommit.Dir = workDir
+		output, err = cmdCommit.CombinedOutput()
+		assert.NoError(t, err, "should not fail to commit: %s", string(output))
+
+		// Push changes
+		cmdPush := exec.Command("git", "push", "-o", "skip-secret-scanner")
+		cmdPush.Dir = workDir
+		output, err = cmdPush.CombinedOutput()
+		outputString := string(output)
+		assert.Error(t, err, "should fail to push: %s", outputString)
+		assert.Contains(t, outputString, "log folder \"logsFolder\" does not exist")
 	})
 }
 

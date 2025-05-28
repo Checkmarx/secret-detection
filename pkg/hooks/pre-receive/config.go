@@ -12,6 +12,7 @@ type PreReceiveConfig struct {
 	IgnoreRule     []string `yaml:"ignore_rule_id"`
 	IgnoreSecret   []string `yaml:"ignore_result_id"`
 	LogsFolderPath string   `yaml:"logs_folder_path"`
+	AllowSkip      bool     `yaml:"allow_skip"`
 }
 
 func loadScanConfig(configPath string) (PreReceiveConfig, error) {
@@ -31,6 +32,7 @@ func loadScanConfig(configPath string) (PreReceiveConfig, error) {
 		IgnoreRule:     cfg.IgnoreRule,
 		IgnoreSecret:   cfg.IgnoreSecret,
 		LogsFolderPath: cfg.LogsFolderPath,
+		AllowSkip:      cfg.AllowSkip,
 	}, nil
 }
 

@@ -47,7 +47,7 @@ func Scan(configPath string) error {
 		return err
 	}
 
-	if skipScan() {
+	if scanConfig.AllowSkip && skipScan() {
 		fmt.Print("Cx Secret Scanner bypassed")
 		err = logSkip(scanConfig.LogsFolderPath, refs)
 		return err

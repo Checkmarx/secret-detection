@@ -7,3 +7,4 @@ ignore_rule_id:
   - "github-pat"
 ignore_result_id:
   - "6981a34c1d94db7b5465fbc8b8f4fb97c2c97426"
+allow_skip: false

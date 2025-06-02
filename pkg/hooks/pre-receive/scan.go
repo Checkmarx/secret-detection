@@ -17,12 +17,6 @@ import (
 	"strings"
 )
 
-type ScanConfig struct {
-	ignoreResultIds []string
-	ignoreRules     []string
-	pathExclusion   []string
-}
-
 const (
 	zeroRev             = "0000000000000000000000000000000000000000"
 	unknownCommit       = "unknown"

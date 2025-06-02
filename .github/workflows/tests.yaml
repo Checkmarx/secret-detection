@@ -34,7 +34,7 @@ jobs:
 
       - name: Download AST CLI
         run: |
-          git clone --branch pre-receive-local https://github.com/Checkmarx/ast-cli.git
+          git clone --branch feature/pre-receive https://github.com/Checkmarx/ast-cli.git
           cd ast-cli
           go build -o cx ./cmd
           sudo mv cx /usr/local/bin/

@@ -31,13 +31,13 @@ func TestPreCommitInstall(t *testing.T) {
 		// Initialize Git repository.
 		cmdGitInit := exec.Command("git", "init")
 		cmdGitInit.Dir = tmpDir
-		output, err := cmdGitInit.CombinedOutput()
+		_, err := cmdGitInit.CombinedOutput()
 		assert.NoError(t, err, "git init should not fail")
 
 		// Run the pre-commit install and expect success.
 		cmdPreCommitInstall := exec.Command("cx", "hooks", "pre-commit", "secrets-install-git-hook")
 		cmdPreCommitInstall.Dir = tmpDir
-		output, err = cmdPreCommitInstall.CombinedOutput()
+		output, err := cmdPreCommitInstall.CombinedOutput()
 		assert.NoError(t, err, "pre-commit install should not fail in a git repo")
 
 		// Verify the configuration file was created.

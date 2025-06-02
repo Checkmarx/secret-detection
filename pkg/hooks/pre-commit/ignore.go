@@ -50,7 +50,11 @@ func Ignore(resultIds []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %w", ignoreFilePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close %s: %v\n", ignoreFilePath, cerr)
+		}
+	}()
 
 	// If file exists and doesn't end with a newline, add one
 	if len(fileContent) > 0 && fileContent[len(fileContent)-1] != '\n' {
@@ -79,7 +83,7 @@ func IgnoreAll() error {
 		return fmt.Errorf("failed to ignore all results: nil report")
 	}
 	var resultIds []string
-	for resultId, _ := range report.Results {
+	for resultId := range report.Results {
 		resultIds = append(resultIds, resultId)
 	}
 	return Ignore(resultIds)

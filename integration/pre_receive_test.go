@@ -17,6 +17,7 @@ const (
 	logsFolderConfig     = "testdata/configs/logs_folder_path.yaml"
 	allowSkipTrueConfig  = "testdata/configs/allow_skip_true.yaml"
 	allowSkipFalseConfig = "testdata/configs/allow_skip_false.yaml"
+	emptyConfig          = "testdata/configs/empty.yaml"
 )
 
 func TestPreReceiveScan(t *testing.T) {
@@ -167,7 +168,7 @@ func TestPreReceiveScan(t *testing.T) {
 		assert.NotContains(t, outputString, "Cx Secret Scanner bypassed")
 	})
 	t.Run("commit files with secrets and push with skip option (allow_skip not set)", func(t *testing.T) {
-		rel := allowSkipFalseConfig
+		rel := emptyConfig
 		configPath, err := filepath.Abs(rel)
 		assert.NoError(t, err, "should not fail to get configPath")
 		workDir, cleanup := setupPreReceiveTmpDir(t, configPath)

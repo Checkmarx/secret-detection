@@ -97,7 +97,10 @@ PrintLoop:
 		for _, fileName := range fileNames {
 			secretsInFile := secretsByFileName[fileName]
 			sort.Slice(secretsInFile, func(i, j int) bool {
-				return secretsInFile[i].secret.StartLine < secretsInFile[j].secret.StartLine
+				if secretsInFile[i].secret.StartLine != secretsInFile[j].secret.StartLine {
+					return secretsInFile[i].secret.StartLine < secretsInFile[j].secret.StartLine
+				}
+				return secretsInFile[i].secret.ID < secretsInFile[j].secret.ID
 			})
 
 			numberOfSecretsInFile := len(secretsInFile)

@@ -435,15 +435,15 @@ Author: Name03
         Location        : Line 0
         Content Type    : Added
 
-        Result ID       : ID149
-        Secret Detected : O5gB***
-        Rule ID         : RULE06
-        Location        : Line 29
-        Content Type    : Added
-
         Result ID       : ID049
         Secret Detected : ODRj***
         Rule ID         : RULE08
+        Location        : Line 29
+        Content Type    : Added
+
+        Result ID       : ID149
+        Secret Detected : O5gB***
+        Rule ID         : RULE06
         Location        : Line 29
         Content Type    : Added
 

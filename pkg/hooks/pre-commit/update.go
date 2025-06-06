@@ -1,4 +1,4 @@
-package hooks
+package pre_commit
 
 import (
 	"fmt"

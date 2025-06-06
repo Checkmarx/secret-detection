@@ -1,4 +1,4 @@
-package hooks
+package pre_commit
 
 import (
 	"fmt"
@@ -104,7 +104,7 @@ func sendDiffContentForScanning(file string, hunks []parser.Hunk, items chan<- t
 	content := builder.String()
 	items <- twoms.ScanItem{
 		Content: &content,
-		ID:      fmt.Sprintf("pre-commit-%s", file),
+		ID:      fmt.Sprintf("hooks-%s", file),
 		Source:  file,
 	}
 }

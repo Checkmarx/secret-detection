@@ -1,0 +1,3 @@
+ignore_rule_id:
+  - "github-pat"
+  - "jwt"

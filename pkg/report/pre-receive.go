@@ -17,6 +17,7 @@ const (
 	beginPrivateKeyString  = "-----BEGIN"
 	privateKeySeparator    = "-----"
 	maxDisplayedResults    = 100
+	commitDateLayout       = "Mon Jan 2 15:04:05 2006 -0700 UTC"
 )
 
 type CommitInfo struct {
@@ -98,7 +99,7 @@ PrintLoop:
 		sb.WriteString(author)
 		sb.WriteString("\n")
 		sb.WriteString("Date: ")
-		sb.WriteString(date.String())
+		sb.WriteString(date.Format(commitDateLayout))
 		sb.WriteString("\n\n")
 
 		fileNames := make([]string, 0, len(secretsByFileName))

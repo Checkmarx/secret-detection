@@ -1,7 +1,12 @@
 name: Secret module Tests
 
 on:
+  workflow_dispatch:  # Allow manual triggering
   pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '00 7 * * *' # Every day at 07:00
 
 jobs:
   integration-tests:

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -17,6 +18,11 @@ const (
 	privateKeySeparator    = "-----"
 	maxDisplayedResults    = 100
 )
+
+type CommitInfo struct {
+	Author string
+	Date   time.Time
+}
 
 type FileInfo struct {
 	File        *gitdiff.File
@@ -33,7 +39,7 @@ type SourceInfo struct {
 	fileName    string
 }
 
-func PreReceiveReport(report *reporting.Report, authorByCommitID map[string]string) string {
+func PreReceiveReport(report *reporting.Report, commitInfo map[string]CommitInfo) string {
 	var sb strings.Builder
 	sb.Grow(512 * len(report.Results)) // avoid multiple reallocations
 
@@ -59,7 +65,10 @@ func PreReceiveReport(report *reporting.Report, authorByCommitID map[string]stri
 	for commitID := range secretsByCommitID {
 		commitIDs = append(commitIDs, commitID)
 	}
-	sort.Strings(commitIDs)
+
+	sort.Slice(commitIDs, func(i, j int) bool {
+		return commitInfo[commitIDs[i]].Date.After(commitInfo[commitIDs[j]].Date)
+	})
 
 	printed := 0
 	commitIndex := 1
@@ -71,7 +80,8 @@ PrintLoop:
 
 		numberOfSecretsInCommit := len(secretsInfo)
 		numberOfFiles := len(secretsByFileName)
-		author := authorByCommitID[commitID]
+		author := commitInfo[commitID].Author
+		date := commitInfo[commitID].Date
 
 		sb.WriteString("Commit #")
 		sb.WriteString(strconv.Itoa(commitIndex))
@@ -86,6 +96,9 @@ PrintLoop:
 		sb.WriteString("\n")
 		sb.WriteString("Author: ")
 		sb.WriteString(author)
+		sb.WriteString("\n")
+		sb.WriteString("Date: ")
+		sb.WriteString(date.String())
 		sb.WriteString("\n\n")
 
 		fileNames := make([]string, 0, len(secretsByFileName))

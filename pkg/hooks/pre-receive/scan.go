@@ -53,13 +53,13 @@ func Scan(configPath string) error {
 	}
 
 	if scanReport.TotalSecretsFound > 0 {
-		authors := authorByCommitID(fileDiffs)
+		commitInfo := commitInfoByCommitID(fileDiffs)
 		err = updateResultsStartAndEndLine(scanReport, fileDiffs)
 		if err != nil {
 			return err
 		}
 		removeDuplicateResults(scanReport)
-		preReceiveReport := report.PreReceiveReport(scanReport, authors)
+		preReceiveReport := report.PreReceiveReport(scanReport, commitInfo)
 		fmt.Print(preReceiveReport)
 		err = logReport(scanConfig.LogsFolderPath, preReceiveReport)
 		if err != nil {
@@ -320,12 +320,16 @@ func readRefsFromStdin() ([]string, error) {
 	return refs, nil
 }
 
-func authorByCommitID(fileDiffs map[string]*report.FileInfo) map[string]string {
-	authors := make(map[string]string)
+func commitInfoByCommitID(fileDiffs map[string]*report.FileInfo) map[string]report.CommitInfo {
+	infos := make(map[string]report.CommitInfo)
 	for _, fileInfo := range fileDiffs {
 		commitID := fileInfo.File.PatchHeader.SHA
 		author := fmt.Sprintf("%s <%s>", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
-		authors[commitID] = author
+		commitInfo := report.CommitInfo{
+			Author: author,
+			Date:   fileInfo.File.PatchHeader.AuthorDate,
+		}
+		infos[commitID] = commitInfo
 	}
-	return authors
+	return infos
 }

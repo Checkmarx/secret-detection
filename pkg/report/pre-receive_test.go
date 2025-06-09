@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const (
@@ -23,25 +24,40 @@ const (
 // but because we use an RNG with a fixed seed, the entire report is fully
 // deterministic. We can safely generate fixtures once and rely on
 // makeReport(…) to reproduce the same output every time in the tests.
-func makeReport(totalSecrets, numFiles, numCommits int) (*reporting.Report, map[string]string) {
-	authorByCommitID := make(map[string]string)
+func makeReport(totalSecrets, numFiles, numCommits int) (*reporting.Report, map[string]CommitInfo) {
+	// deterministic seed for reproducibility in tests
 	rng := rand.New(rand.NewSource(42))
 
-	// pre-generate commit IDs: COMMIT000, COMMIT001, …
+	// Generate commit IDs
 	commitIDs := make([]string, numCommits)
 	for j := 0; j < numCommits; j++ {
 		commitIDs[j] = fmt.Sprintf("COMMIT%03d", j)
 	}
 
+	// fixed base time
+	baseTime := time.Date(2025, time.June, 9, 0, 0, 0, 0, time.UTC)
+
+	// Pre-generate one CommitInfo (Author + Date) per commit
+	commitInfoByID := make(map[string]CommitInfo, numCommits)
+	for _, commitID := range commitIDs {
+		author := fmt.Sprintf("Name%02d", rng.Intn(10))
+		// random date within the past 0–72 hours of our fixed baseTime
+		date := baseTime.Add(-time.Duration(rng.Intn(72)) * time.Hour)
+		commitInfoByID[commitID] = CommitInfo{
+			Author: author,
+			Date:   date,
+		}
+	}
+
+	// Populate fake secret results, round-robin by commit
 	results := make(map[string][]*secrets.Secret, totalSecrets)
 	usedIDs := make(map[string]struct{}, totalSecrets)
 
 	for i := 0; i < totalSecrets; i++ {
-		// round-robin assign file and commit
 		fileName := fmt.Sprintf("file%02d.txt", i%numFiles)
 		commitID := commitIDs[i%numCommits]
 
-		// generate a unique random resultID of length 8
+		// unique random result-ID
 		var resultID string
 		for {
 			resultID = randomValue(rng, 8)
@@ -59,16 +75,15 @@ func makeReport(totalSecrets, numFiles, numCommits int) (*reporting.Report, map[
 			Value:     randomValue(rng, 12),
 		}
 
-		// each resultID gets its own slice (one secret)
-		authorByCommitID[commitID] = fmt.Sprintf("Name%02d", rng.Intn(10))
 		results[resultID] = []*secrets.Secret{s}
 	}
 
+	// Return the report and the new map[string]CommitInfo
 	return &reporting.Report{
 		TotalItemsScanned: numFiles,
 		TotalSecretsFound: totalSecrets,
 		Results:           results,
-	}, authorByCommitID
+	}, commitInfoByID
 }
 
 // randomValue returns an alphanumeric string of length n, using the provided rng.
@@ -367,13 +382,13 @@ func TestPreReceiveReport(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rpt, authors := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
+			rpt, commitInfo := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
 
 			wantBytes, err := os.ReadFile(tc.expectedFile)
 			assert.NoError(t, err, "reading %s", tc.expectedFile)
 			want := strings.ReplaceAll(string(wantBytes), "\r", "")
 
-			got := PreReceiveReport(rpt, authors)
+			got := PreReceiveReport(rpt, commitInfo)
 
 			assert.Equal(t, want, got, "output mismatch for %s", tc.name)
 		})

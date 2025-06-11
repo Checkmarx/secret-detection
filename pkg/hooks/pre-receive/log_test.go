@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-//go:embed testdata/fixsures/skip_*.log
+//go:embed testdata/fixtures/skip_*.log
 var expectedFiles embed.FS
 
 func TestLogSkip(t *testing.T) {

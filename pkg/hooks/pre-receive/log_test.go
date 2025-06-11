@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-//go:embed testdata/fixtures/expected_*.log
+//go:embed testdata/fixsures/skip_*.log
 var expectedFiles embed.FS
 
 func TestLogSkip(t *testing.T) {
@@ -20,10 +20,10 @@ func TestLogSkip(t *testing.T) {
 		envValue    string
 		fixturePath string
 	}{
-		{"GitHub", envGitHubUserLogin, "githubuser", "testdata/fixtures/expected_github.log"},
-		{"GitLab", envGitLabUsername, "gitlabuser", "testdata/fixtures/expected_gitlab.log"},
-		{"Bitbucket", envBitbucketUserName, "bbuser", "testdata/fixtures/expected_bitbucket.log"},
-		{"Unknown", "", "", "testdata/fixtures/expected_unknown.log"},
+		{"GitHub", envGitHubUserLogin, "githubuser", "testdata/fixtures/skip_github.log"},
+		{"GitLab", envGitLabUsername, "gitlabuser", "testdata/fixtures/skip_gitlab.log"},
+		{"Bitbucket", envBitbucketUserName, "bbuser", "testdata/fixtures/skip_bitbucket.log"},
+		{"Unknown", "", "", "testdata/fixtures/skip_unknown.log"},
 	}
 
 	refs := []string{"old1 new1 ref1", "old2 new2 ref2"}

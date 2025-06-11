@@ -1,0 +1,5 @@
+User: githubuser
+Push skipped by secret scanner for refs:
+Format: <old object> <new object> <ref name>
+old1 new1 ref1
+old2 new2 ref2

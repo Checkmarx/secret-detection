@@ -1,6 +1,7 @@
 package pre_receive
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,69 @@ const (
 	envGitLabUsername    = "GL_USERNAME"       // GitLab CE/EE
 	envBitbucketUserName = "BB_USER_NAME"      // Bitbucket Server/DC
 )
+
+type skipLogEntry struct {
+	User string         `json:"user"`
+	Refs []skipRefEntry `json:"refs"`
+}
+
+type skipRefEntry struct {
+	OldObject string `json:"old_object"`
+	NewObject string `json:"new_object"`
+	RefName   string `json:"ref_name"`
+}
+
+// logSkip writes a JSON skip log named skip_<timestamp>.json
+func logSkip(folderPath string, refs []string) error {
+	if folderPath == "" {
+		return nil
+	}
+
+	// Determine pusher username
+	user := os.Getenv(envGitHubUserLogin)
+	if user == "" {
+		user = os.Getenv(envGitLabUsername)
+	}
+	if user == "" {
+		user = os.Getenv(envBitbucketUserName)
+	}
+	if user == "" {
+		user = "<unknown>"
+	}
+
+	// Parse each ref line into structured fields
+	parsed := make([]skipRefEntry, 0, len(refs))
+	for _, r := range refs {
+		parts := strings.Fields(r)
+		if len(parts) < 3 {
+			continue
+		}
+		parsed = append(parsed, skipRefEntry{
+			OldObject: parts[0],
+			NewObject: parts[1],
+			RefName:   parts[2],
+		})
+	}
+
+	// Build JSON payload
+	entry := skipLogEntry{
+		User: user,
+		Refs: parsed,
+	}
+	data, err := json.MarshalIndent(entry, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal skip log JSON: %w", err)
+	}
+
+	ts := time.Now().UTC().Format("2006-01-02_15-04-05.000000000")
+	fileName := fmt.Sprintf("skip_%s.json", ts)
+	path := filepath.Join(folderPath, fileName)
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("failed to write skip log JSON to %q: %w", path, err)
+	}
+	return nil
+}
 
 // validateLogsFolderPath checks if the given non-empty folderPath exists and is a directory, returning an error otherwise.
 func validateLogsFolderPath(folderPath string) error {
@@ -34,78 +98,19 @@ func validateLogsFolderPath(folderPath string) error {
 	return nil
 }
 
-// logReport writes the given report to a file named by creation time.
-func logReport(folderPath, scanReport string) error {
+// logJSONReport writes the given JSON report to a file named by creation time.
+func logJSONReport(folderPath string, jsonReport []byte) error {
 	if folderPath == "" {
 		return nil
 	}
 
 	now := time.Now().UTC()
 	timestamp := now.Format("2006-01-02_15-04-05.000000000")
-	fileName := fmt.Sprintf("report_%s.log", timestamp)
+	fileName := fmt.Sprintf("report_%s.json", timestamp)
+	fullPath := filepath.Join(folderPath, fileName)
 
-	logFilePath := filepath.Join(folderPath, fileName)
-
-	f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open log file %q: %w", logFilePath, err)
+	if err := os.WriteFile(fullPath, jsonReport, 0o644); err != nil {
+		return fmt.Errorf("failed to write JSON report to %q: %w", fullPath, err)
 	}
-	defer f.Close()
-
-	if _, err = f.WriteString(scanReport); err != nil {
-		return fmt.Errorf("failed to write to log file %q: %w", logFilePath, err)
-	}
-
-	return nil
-}
-
-// logSkip writes a one-off skip log named skip_<timestamp>.log,
-// including the pusher's username (if available) and exactly which refs were pushed.
-func logSkip(folderPath string, refs []string) error {
-	if folderPath == "" {
-		return nil
-	}
-
-	// Determine pusher username from known environment variables
-	user := os.Getenv(envGitHubUserLogin)
-	if user == "" {
-		user = os.Getenv(envGitLabUsername)
-	}
-	if user == "" {
-		user = os.Getenv(envBitbucketUserName)
-	}
-
-	// Prepare user information line
-	userInfo := fmt.Sprintf("User: %s\n", user)
-	if user == "" {
-		userInfo = "User: <unknown> (could not retrieve pusher username)\n"
-	}
-
-	// Build the full log content
-	var b strings.Builder
-	b.WriteString(userInfo)
-	b.WriteString("Push skipped by secret scanner for refs:\n")
-	b.WriteString("Format: <old object> <new object> <ref name>\n")
-	for _, r := range refs {
-		b.WriteString(r)
-		b.WriteString("\n")
-	}
-
-	// Timestamp and file path
-	ts := time.Now().UTC().Format("2006-01-02_15-04-05.000000000")
-	filePath := filepath.Join(folderPath, fmt.Sprintf("skip_%s.log", ts))
-
-	// Create or truncate the log file
-	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open skip log file %q: %w", filePath, err)
-	}
-	defer f.Close()
-
-	// Write the complete content
-	if _, err = f.WriteString(b.String()); err != nil {
-		return fmt.Errorf("writing skip log: %w", err)
-	}
-
 	return nil
 }

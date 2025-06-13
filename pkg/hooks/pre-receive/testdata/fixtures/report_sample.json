@@ -1,0 +1,93 @@
+{
+  "total_secrets_found": 6,
+  "commits": [
+    {
+      "commit_id": "COMMIT001",
+      "author": "Dummy1",
+      "date": "2025-06-13T08:15:00Z",
+      "files": [
+        {
+          "file_name": "app/config.yaml",
+          "secrets": [
+            {
+              "id": "ID001",
+              "value": "abcd***",
+              "rule_id": "RULE01",
+              "start_line": 12,
+              "content_type": "Added"
+            },
+            {
+              "id": "ID002",
+              "value": "wxyz***",
+              "rule_id": "RULE02",
+              "start_line": 45,
+              "content_type": "Added"
+            }
+          ]
+        },
+        {
+          "file_name": "README.md",
+          "secrets": [
+            {
+              "id": "ID003",
+              "value": "1234***",
+              "rule_id": "RULE03",
+              "start_line": 5,
+              "content_type": "Added"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "commit_id": "COMMIT002",
+      "author": "Dummy2",
+      "date": "2025-06-12T16:30:00Z",
+      "files": [
+        {
+          "file_name": "scripts/deploy.sh",
+          "secrets": [
+            {
+              "id": "ID004",
+              "value": "k9Lm***",
+              "rule_id": "RULE04",
+              "start_line": 23,
+              "content_type": "Added"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "commit_id": "COMMIT003",
+      "author": "Dummy3",
+      "date": "2025-06-11T12:00:00Z",
+      "files": [
+        {
+          "file_name": "src/main.go",
+          "secrets": [
+            {
+              "id": "ID005",
+              "value": "ZxYv***",
+              "rule_id": "RULE05",
+              "start_line": 78,
+              "content_type": "Added"
+            }
+          ]
+        },
+        {
+          "file_name": "src/utils/helpers.go",
+          "secrets": [
+            {
+              "id": "ID006",
+              "value": "MnOp***",
+              "rule_id": "RULE06",
+              "start_line": 102,
+              "content_type": "Added"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

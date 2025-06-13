@@ -59,9 +59,12 @@ func Scan(configPath string) error {
 			return err
 		}
 		removeDuplicateResults(scanReport)
-		preReceiveReport := report.PreReceiveReport(scanReport, commitInfo)
-		fmt.Print(preReceiveReport)
-		err = logReport(scanConfig.LogsFolderPath, preReceiveReport)
+		preReceiveReportText, preReceiveReportJson, err := report.PreReceiveReport(scanReport, commitInfo)
+		if err != nil {
+			return err
+		}
+		fmt.Print(preReceiveReportText)
+		err = logJSONReport(scanConfig.LogsFolderPath, preReceiveReportJson)
 		if err != nil {
 			return err
 		}

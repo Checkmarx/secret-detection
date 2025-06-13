@@ -10,26 +10,56 @@ import (
 	"testing"
 )
 
-//go:embed testdata/fixtures/skip_*.log
-var expectedFiles embed.FS
+//go:embed testdata/fixtures/report_sample.json
+var sampleFiles embed.FS
+
+//go:embed testdata/fixtures/skip_*.json
+var expectedSkipFiles embed.FS
+
+func TestLogJSONReport(t *testing.T) {
+	// Read our sample JSON fixture
+	expBytes, err := fs.ReadFile(sampleFiles, "testdata/fixtures/report_sample.json")
+	assert.NoError(t, err, "reading embedded sample JSON")
+
+	// Create a temp directory
+	dir := t.TempDir()
+
+	// Call the function under test
+	err = logJSONReport(dir, expBytes)
+	assert.NoError(t, err, "logJSONReport should not error")
+
+	// There should be exactly one file named report_*.json
+	pattern := filepath.Join(dir, "report_*.json")
+	files, err := filepath.Glob(pattern)
+	assert.NoError(t, err, "glob should not error")
+	assert.Len(t, files, 1, "expected exactly one JSON report file")
+
+	// Read its contents
+	gotBytes, err := os.ReadFile(files[0])
+	assert.NoError(t, err, "reading generated JSON file")
+
+	// Compare byte-for-byte to the fixture
+	assert.Equal(t, expBytes, gotBytes, "written JSON must exactly match fixture")
+}
 
 func TestLogSkip(t *testing.T) {
 	cases := []struct {
 		name        string
 		envKey      string
 		envValue    string
-		fixturePath string
+		fixtureFile string
 	}{
-		{"GitHub", envGitHubUserLogin, "githubuser", "testdata/fixtures/skip_github.log"},
-		{"GitLab", envGitLabUsername, "gitlabuser", "testdata/fixtures/skip_gitlab.log"},
-		{"Bitbucket", envBitbucketUserName, "bbuser", "testdata/fixtures/skip_bitbucket.log"},
-		{"Unknown", "", "", "testdata/fixtures/skip_unknown.log"},
+		{"GitHub", envGitHubUserLogin, "githubuser", "skip_github.json"},
+		{"GitLab", envGitLabUsername, "gitlabuser", "skip_gitlab.json"},
+		{"Bitbucket", envBitbucketUserName, "bbuser", "skip_bitbucket.json"},
+		{"Unknown", "", "", "skip_unknown.json"},
 	}
 
 	refs := []string{"old1 new1 ref1", "old2 new2 ref2"}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Clear all upstream env vars, then set the one we care about
 			os.Unsetenv(envGitHubUserLogin)
 			os.Unsetenv(envGitLabUsername)
 			os.Unsetenv(envBitbucketUserName)
@@ -38,34 +68,29 @@ func TestLogSkip(t *testing.T) {
 			}
 			defer os.Unsetenv(tc.envKey)
 
-			// Temporary directory for log output
 			dir := t.TempDir()
-
-			// Run logSkip
 			err := logSkip(dir, refs)
-			assert.NoError(t, err, "logSkip should not return an error")
+			assert.NoError(t, err)
 
-			// Verify one log file created
-			pattern := filepath.Join(dir, "skip_*.log")
+			// There should be exactly one skip_*.json file
+			pattern := filepath.Join(dir, "skip_*.json")
 			files, err := filepath.Glob(pattern)
-			assert.NoError(t, err, "glob should not error")
-			assert.Len(t, files, 1, "expected exactly one skip log file")
+			assert.NoError(t, err)
+			assert.Len(t, files, 1, "expected one skip JSON file")
 			logPath := files[0]
 
-			// Read generated content
 			gotBytes, err := os.ReadFile(logPath)
-			assert.NoError(t, err, "reading generated log should not error")
+			assert.NoError(t, err)
 
-			// Read expected fixture
-			expBytes, err := fs.ReadFile(expectedFiles, tc.fixturePath)
-			assert.NoError(t, err, "reading fixture file should not error")
+			expBytes, err := fs.ReadFile(expectedSkipFiles, "testdata/fixtures/"+tc.fixtureFile)
+			assert.NoError(t, err)
 
-			// Normalize line endings to LF for comparison
-			got := strings.ReplaceAll(string(gotBytes), "\r\n", "\n")
-			exp := strings.ReplaceAll(string(expBytes), "\r\n", "\n")
-
-			// Compare content
-			assert.Equal(t, exp, got, "content mismatch for %s", tc.name)
+			// Compare as JSON
+			assert.JSONEq(t,
+				strings.ReplaceAll(string(expBytes), "\r", ""),
+				strings.ReplaceAll(string(gotBytes), "\r", ""),
+				"mismatch for %s", tc.name,
+			)
 		})
 	}
 }

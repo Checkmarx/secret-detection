@@ -1,7 +1,9 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/Checkmarx/secret-detection/pkg/report"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
@@ -585,13 +587,38 @@ func TestPreReceiveScan(t *testing.T) {
 
 		fname := entries[0].Name()
 		// timestamp format: 2006-01-02_15-04-05.000000000
-		assert.Regexp(t, `^report_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.log$`, fname,
+		assert.Regexp(t, `^report_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.json$`, fname,
 			"file name should include UTC timestamp")
 
 		contents, err := os.ReadFile(filepath.Join(logsDir, fname))
 		assert.NoError(t, err, "should read the report file")
-		assert.Contains(t, string(contents), "Detected 1 secret across 1 commit",
-			"report content should match the scan output")
+
+		var out report.ReportOutput
+		assert.NoError(t, json.Unmarshal(contents, &out), "report must be valid JSON")
+
+		// Top‐level checks
+		assert.Equal(t, 1, out.TotalSecretsFound, "there should be exactly 1 secret")
+		assert.Len(t, out.Commits, 1, "there should be exactly 1 commit")
+
+		// Inspect the single commit
+		commit := out.Commits[0]
+		assert.NotEmpty(t, commit.CommitID, "commit_id must not be empty")
+		assert.NotEmpty(t, commit.Author, "author must not be empty")
+		assert.False(t, commit.Date.IsZero(), "date must be set")
+
+		// Exactly one file in that commit
+		assert.Len(t, commit.Files, 1, "commit should have exactly 1 file")
+		fileSummary := commit.Files[0]
+		assert.NotEmpty(t, fileSummary.FileName, "file_name must not be empty")
+
+		// Exactly one secret in that file
+		assert.Len(t, fileSummary.Secrets, 1, "file should have exactly 1 secret")
+		secret := fileSummary.Secrets[0]
+		assert.NotEmpty(t, secret.ID, "secret.id must not be empty")
+		assert.NotEmpty(t, secret.Value, "secret.value must not be empty")
+		assert.NotEmpty(t, secret.RuleID, "secret.rule_id must not be empty")
+		assert.NotZero(t, secret.StartLine, "secret.start_line must be non-zero")
+		assert.NotEmpty(t, secret.ContentType, "secret.content_type must not be empty")
 	})
 	t.Run("should create a report when skipping secret scanner with a valid logs folder path", func(t *testing.T) {
 		rel := logsFolderConfig
@@ -640,13 +667,46 @@ func TestPreReceiveScan(t *testing.T) {
 
 		fname := entries[0].Name()
 		// timestamp format: 2006-01-02_15-04-05.000000000
-		assert.Regexp(t, `^skip_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.log$`, fname,
+		assert.Regexp(t, `^skip_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{9}\.json$`, fname,
 			"file name should include UTC timestamp")
 
 		contents, err := os.ReadFile(filepath.Join(logsDir, fname))
 		assert.NoError(t, err, "should read the report file")
-		assert.Contains(t, string(contents), "Push skipped by secret scanner for refs",
-			"report content should reference content skipped")
+
+		// Unmarshal to verify the schema
+		var root map[string]interface{}
+		assert.NoError(t, json.Unmarshal(contents, &root), "should be valid JSON")
+
+		// Top‐level keys
+		user, ok := root["user"].(string)
+		assert.True(t, ok, `"user" must be a string`)
+		assert.NotEmpty(t, user, `"user" should not be empty`)
+
+		refs, ok := root["refs"].([]interface{})
+		assert.True(t, ok, `"refs" must be an array`)
+
+		assert.Len(t, refs, 1, `"refs" array length`)
+
+		entry, ok := refs[0].(map[string]interface{})
+		assert.True(t, ok, `refs[0] should be an object`)
+
+		// old_object
+		oo, ok := entry["old_object"].(string)
+		assert.True(t, ok, `refs[0].old_object must be a string`)
+		assert.NotEmpty(t, oo, "old object should not be empty")
+
+		// new_object
+		no, ok := entry["new_object"].(string)
+		assert.True(t, ok, `refs[0].new_object must be a string`)
+		assert.NotEmpty(t, no, "new object should not be empty")
+
+		// ref_name
+		rn, ok := entry["ref_name"].(string)
+		assert.True(t, ok, `refs[0].ref_name must be a string`)
+		assert.NotEmpty(t, rn, "ref name should not be empty")
+
+		// no extra keys lived in the JSON:
+		assert.Len(t, root, 2, `only "user" and "refs" should appear`)
 	})
 	t.Run("should fail when logs folder is set but does not exist", func(t *testing.T) {
 		rel := logsFolderConfig

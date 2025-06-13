@@ -1,0 +1,7 @@
+{
+  "user": "bbuser",
+  "refs": [
+    { "old_object": "old1", "new_object": "new1", "ref_name": "ref1" },
+    { "old_object": "old2", "new_object": "new2", "ref_name": "ref2" }
+  ]
+}

@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/Checkmarx/secret-detection/pkg/report"
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/checkmarx/2ms/lib/secrets"
-	twoms "github.com/checkmarx/2ms/pkg"
-	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
+	twoms "github.com/checkmarx/2ms/v3/pkg"
+	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -59,9 +59,12 @@ func Scan(configPath string) error {
 			return err
 		}
 		removeDuplicateResults(scanReport)
-		preReceiveReport := report.PreReceiveReport(scanReport, commitInfo)
-		fmt.Print(preReceiveReport)
-		err = logReport(scanConfig.LogsFolderPath, preReceiveReport)
+		preReceiveReportText, preReceiveReportJson, err := report.PreReceiveReport(scanReport, commitInfo)
+		if err != nil {
+			return err
+		}
+		fmt.Print(preReceiveReportText)
+		err = logJSONReport(scanConfig.LogsFolderPath, preReceiveReportJson)
 		if err != nil {
 			return err
 		}
@@ -324,7 +327,7 @@ func commitInfoByCommitID(fileDiffs map[string]*report.FileInfo) map[string]repo
 	infos := make(map[string]report.CommitInfo)
 	for _, fileInfo := range fileDiffs {
 		commitID := fileInfo.File.PatchHeader.SHA
-		author := fmt.Sprintf("%s <%s>", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
+		author := fmt.Sprintf("%s (%s)", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
 		commitInfo := report.CommitInfo{
 			Author: author,
 			Date:   fileInfo.File.PatchHeader.AuthorDate,

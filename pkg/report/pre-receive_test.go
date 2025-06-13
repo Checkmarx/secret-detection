@@ -2,8 +2,8 @@ package report
 
 import (
 	"fmt"
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"os"
@@ -13,9 +13,11 @@ import (
 )
 
 const (
-	exceedsMaxDisplayedResultsSource     = "testdata/fixtures/exceeds_max_displayed_results.txt"
-	multipleFilesCommitsAndSecretsSource = "testdata/fixtures/multiple_files_commits_and_secrets.txt"
-	singleFileCommitAndSecretSource      = "testdata/fixtures/single_file_commit_and_secret.txt"
+	exceedsMaxDisplayedResultsSource         = "testdata/fixtures/exceeds_max_displayed_results.txt"
+	multipleFilesCommitsAndSecretsSourceText = "testdata/fixtures/multiple_files_commits_and_secrets.txt"
+	singleFileCommitAndSecretSourceText      = "testdata/fixtures/single_file_commit_and_secret.txt"
+	multipleFilesCommitsAndSecretsSourceJson = "testdata/fixtures/multiple_files_commits_and_secrets.json"
+	singleFileCommitAndSecretSourceJson      = "testdata/fixtures/single_file_commit_and_secret.json"
 )
 
 // makeReport generates a reporting.Report containing exactly totalSecrets dummy
@@ -351,46 +353,57 @@ func TestObfuscateSecret(t *testing.T) {
 
 func TestPreReceiveReport(t *testing.T) {
 	tests := []struct {
-		name         string
-		totalSecrets int
-		numFiles     int
-		numCommits   int
-		expectedFile string
+		name             string
+		totalSecrets     int
+		numFiles         int
+		numCommits       int
+		expectedTextFile string
+		expectedJsonFile string
 	}{
 		{
-			name:         "single file commit and secret",
-			totalSecrets: 1,
-			numFiles:     1,
-			numCommits:   1,
-			expectedFile: singleFileCommitAndSecretSource,
+			name:             "single file commit and secret",
+			totalSecrets:     1,
+			numFiles:         1,
+			numCommits:       1,
+			expectedTextFile: singleFileCommitAndSecretSourceText,
+			expectedJsonFile: singleFileCommitAndSecretSourceJson,
 		},
 		{
-			name:         "multiple files and commits",
-			totalSecrets: 8,
-			numFiles:     4,
-			numCommits:   2,
-			expectedFile: multipleFilesCommitsAndSecretsSource,
+			name:             "multiple files and commits",
+			totalSecrets:     8,
+			numFiles:         4,
+			numCommits:       2,
+			expectedTextFile: multipleFilesCommitsAndSecretsSourceText,
+			expectedJsonFile: multipleFilesCommitsAndSecretsSourceJson,
 		},
 		{
-			name:         "exceeds maxDisplayedResults",
-			totalSecrets: 150,
-			numFiles:     10,
-			numCommits:   4,
-			expectedFile: exceedsMaxDisplayedResultsSource,
+			name:             "exceeds maxDisplayedResults",
+			totalSecrets:     150,
+			numFiles:         10,
+			numCommits:       4,
+			expectedTextFile: exceedsMaxDisplayedResultsSource,
+			expectedJsonFile: "", // does not apply
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rpt, commitInfo := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
+			report, info := makeReport(tc.totalSecrets, tc.numFiles, tc.numCommits)
 
-			wantBytes, err := os.ReadFile(tc.expectedFile)
-			assert.NoError(t, err, "reading %s", tc.expectedFile)
-			want := strings.ReplaceAll(string(wantBytes), "\r", "")
+			wantText, err := os.ReadFile(tc.expectedTextFile)
+			assert.NoError(t, err)
+			expected := strings.ReplaceAll(string(wantText), "\r", "")
 
-			got := PreReceiveReport(rpt, commitInfo)
+			text, jsonBlob, err := PreReceiveReport(report, info)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, text)
 
-			assert.Equal(t, want, got, "output mismatch for %s", tc.name)
+			if tc.expectedJsonFile != "" {
+				wantJSON, err := os.ReadFile(tc.expectedJsonFile)
+				assert.NoError(t, err)
+				expJSON := strings.ReplaceAll(string(wantJSON), "\r", "")
+				assert.JSONEq(t, expJSON, string(jsonBlob))
+			}
 		})
 	}
 }

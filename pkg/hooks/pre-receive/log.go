@@ -42,7 +42,7 @@ func logSkip(folderPath string, refs []string) error {
 		user = os.Getenv(envBitbucketUserName)
 	}
 	if user == "" {
-		user = "<unknown>"
+		user = "unknown (could not retrieve pusher username)"
 	}
 
 	// Parse each ref line into structured fields

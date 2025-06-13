@@ -14,6 +14,13 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 #v4.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Get secret-detection commit SHA
+        id: sd_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Set up Go version
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 #v4
@@ -41,7 +48,7 @@ jobs:
         run: |
           git clone --branch feature/pre-receive https://github.com/Checkmarx/ast-cli.git
           cd ast-cli
-          go get github.com/Checkmarx/secret-detection@${{ github.sha }}
+          GOPROXY=direct go get github.com/Checkmarx/secret-detection@${{ steps.sd_sha.outputs.sha }}
           go mod tidy
           go build -o cx ./cmd
           sudo mv cx /usr/local/bin/

@@ -327,7 +327,7 @@ func commitInfoByCommitID(fileDiffs map[string]*report.FileInfo) map[string]repo
 	infos := make(map[string]report.CommitInfo)
 	for _, fileInfo := range fileDiffs {
 		commitID := fileInfo.File.PatchHeader.SHA
-		author := fmt.Sprintf("%s <%s>", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
+		author := fmt.Sprintf("%s (%s)", fileInfo.File.PatchHeader.Author.Name, fileInfo.File.PatchHeader.Author.Email)
 		commitInfo := report.CommitInfo{
 			Author: author,
 			Date:   fileInfo.File.PatchHeader.AuthorDate,

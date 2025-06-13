@@ -133,8 +133,10 @@ func generateReportJSON(
 				si, sj := secretsList[i].secret, secretsList[j].secret
 				if si.StartLine != sj.StartLine {
 					return si.StartLine < sj.StartLine
+				} else if si.ID != sj.ID {
+					return si.ID < sj.ID
 				}
-				return si.ID < sj.ID
+				return secretsList[i].source.contentType < secretsList[j].source.contentType
 			})
 			entries := make([]SecretEntry, len(secretsList))
 			for i, s := range secretsList {
@@ -220,7 +222,6 @@ outer:
 		}
 	}
 
-	// Footer always appended
 	sb.WriteString(
 		`A pre-receive hook set server side prevented you from push secrets.
 To proceed, choose one of the following workflows:

@@ -60,9 +60,9 @@ func TestLogSkip(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Clear all upstream env vars, then set the one we care about
-			os.Unsetenv(envGitHubUserLogin)
-			os.Unsetenv(envGitLabUsername)
-			os.Unsetenv(envBitbucketUserName)
+			os.Unsetenv(envGitHubUserLogin)   //nolint:errcheck
+			os.Unsetenv(envGitLabUsername)    //nolint:errcheck
+			os.Unsetenv(envBitbucketUserName) //nolint:errcheck
 			if tc.envKey != "" {
 				t.Setenv(tc.envKey, tc.envValue)
 			}

@@ -1,9 +1,9 @@
 module github.com/Checkmarx/secret-detection
 
-go 1.23.10
+go 1.24.4
 
 require (
-	github.com/checkmarx/2ms/v3 v3.20.0
+	github.com/checkmarx/2ms/v3 v3.20.1
 	github.com/fatih/color v1.14.1
 	github.com/gitleaks/go-gitdiff v0.9.1
 	github.com/rs/zerolog v1.32.0

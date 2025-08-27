@@ -45,7 +45,7 @@ jobs:
 
       - name: Download AST CLI
         run: |
-          git clone --branch feature/pre-receive-demo https://github.com/Checkmarx/ast-cli.git
+          git clone --branch feat/update-pre-receive-secrets-license-logic https://github.com/Checkmarx/ast-cli.git
           cd ast-cli
           go get github.com/Checkmarx/secret-detection@${{ steps.sd_sha.outputs.sha }}
           go mod tidy

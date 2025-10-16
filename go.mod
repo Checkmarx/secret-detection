@@ -1,6 +1,6 @@
 module github.com/Checkmarx/secret-detection
 
-go 1.24.4
+go 1.24.6
 
 require (
 	github.com/checkmarx/2ms/v3 v3.21.0

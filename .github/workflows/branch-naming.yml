@@ -5,9 +5,12 @@ on:
     branches:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   branch-naming:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
 
     steps:
       - name: Check branch name

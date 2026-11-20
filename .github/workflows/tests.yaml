@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Run Grype scan
         id: grype-fs-scan
-        uses: anchore/scan-action@2c901ab7378897c01b8efaa2d0c9bf519cc64b9e # v6.2.0
+        uses: step-security/anchore-scan-action@a09aeacdedd17f1a8e912b3519ee9d7ea124498a # v7.4.2
         with:
           path: "."
           only-fixed: true
